@@ -1,0 +1,151 @@
+name: 'Stage 1: Sync, Translate, Build (v2)'
+
+on:
+  workflow_dispatch:
+
+jobs:
+  stage1:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: 'Checkout'
+        uses: actions/checkout@v4
+        with:
+          ref: 'main'
+
+      - name: 'Setup Node.js'
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: 'Enable Corepack'
+        run: corepack enable
+
+      - name: 'Read meta.json'
+        id: meta
+        run: |
+          if [ ! -f ".github/scripts/meta.json" ]; then
+            echo "ERROR: meta.json not found"
+            exit 1
+          fi
+          echo "docusaurusRoot=$(jq -r '.docusaurusRoot // "."' .github/scripts/meta.json)" >> $GITHUB_OUTPUT
+          echo "translateCommand=$(jq -r '.translateCommand // "npx docusaurus write-translations"' .github/scripts/meta.json)" >> $GITHUB_OUTPUT
+          echo "buildCommand=$(jq -r '.buildCommand // "npx docusaurus build"' .github/scripts/meta.json)" >> $GITHUB_OUTPUT
+          echo "buildOutput=$(jq -r '.buildOutput // "build"' .github/scripts/meta.json)" >> $GITHUB_OUTPUT
+          echo "packageManager=$(jq -r '.packageManager // "npm"' .github/scripts/meta.json)" >> $GITHUB_OUTPUT
+          cat .github/scripts/meta.json
+
+      - name: 'Run prepare.sh (clone, install, prereqs, apply fixes)'
+        run: |
+          if [ ! -f ".github/scripts/prepare.sh" ]; then
+            echo "ERROR: prepare.sh not found"
+            exit 1
+          fi
+          chmod +x .github/scripts/prepare.sh
+          bash .github/scripts/prepare.sh
+
+      - name: 'Get source commit SHA'
+        id: sha
+        run: |
+          if [ -d "source-repo" ]; then
+            echo "sha=$(cd source-repo && git rev-parse HEAD)" >> $GITHUB_OUTPUT
+          else
+            echo "ERROR: source-repo not found after prepare.sh"
+            exit 1
+          fi
+
+      - name: 'Run write-translations'
+        run: |
+          cd "source-repo/${{ steps.meta.outputs.docusaurusRoot }}"
+          echo "Running: ${{ steps.meta.outputs.translateCommand }}"
+          ${{ steps.meta.outputs.translateCommand }}
+
+      - name: 'Run build'
+        run: |
+          cd "source-repo/${{ steps.meta.outputs.docusaurusRoot }}"
+          echo "Running: ${{ steps.meta.outputs.buildCommand }}"
+          ${{ steps.meta.outputs.buildCommand }}
+
+      - name: 'Verify build output'
+        run: |
+          BUILD_OUTPUT="${{ steps.meta.outputs.buildOutput }}"
+          DOC_ROOT="${{ steps.meta.outputs.docusaurusRoot }}"
+          BUILD_DIR="source-repo/${DOC_ROOT}/${BUILD_OUTPUT}"
+
+          # Also check repo root (some builds output relative to root)
+          if [ ! -d "$BUILD_DIR" ]; then
+            BUILD_DIR="source-repo/${BUILD_OUTPUT}"
+          fi
+
+          if [ -d "$BUILD_DIR" ] && [ -f "$BUILD_DIR/index.html" ]; then
+            echo "Build output verified: $(du -sh "$BUILD_DIR" | cut -f1), $(find "$BUILD_DIR" -type f | wc -l) files"
+          else
+            echo "WARNING: build output not found at expected location"
+            echo "Searching for build output..."
+            find source-repo -name "index.html" -path "*/build/*" -o -name "index.html" -path "*/public/*" -o -name "index.html" -path "*/dist/*" 2>/dev/null | head -5
+          fi
+
+      - name: 'Sync files to working directory'
+        run: |
+          rsync -av --delete --no-perms --no-owner --no-group \
+            --exclude='.git/' \
+            --exclude='.github/' \
+            --exclude='.translation_memory/' \
+            --exclude='source-repo/' \
+            --exclude='node_modules/' \
+            ./source-repo/ ./
+          rm -rf ./source-repo
+
+      - name: 'Write sync metadata'
+        run: |
+          echo '{ "source_commit_sha": "${{ steps.sha.outputs.sha }}", "pipeline_version": "v2" }' > .transaurus_sync.json
+
+      - name: 'Sanitize .gitignore files'
+        run: |
+          for gitignore_file in $(find . -name ".gitignore" -not -path "./.git/*"); do
+            echo "Processing $gitignore_file..."
+            # Remove build output patterns
+            sed -i '/^build$/d' "$gitignore_file"
+            sed -i '/^\/build$/d' "$gitignore_file"
+            sed -i '/^build\/$/d' "$gitignore_file"
+            sed -i '/^\/build\/$/d' "$gitignore_file"
+            sed -i '/^public$/d' "$gitignore_file"
+            sed -i '/^\/public$/d' "$gitignore_file"
+            sed -i '/^dist$/d' "$gitignore_file"
+            sed -i '/^\/dist$/d' "$gitignore_file"
+            sed -i '/^out$/d' "$gitignore_file"
+            sed -i '/^\/out$/d' "$gitignore_file"
+            # Remove i18n patterns
+            sed -i '/i18n/d' "$gitignore_file"
+            # Remove image patterns
+            for ext in png jpg jpeg gif svg webp ico bmp; do
+              sed -i "/^\*\.${ext}$/d" "$gitignore_file"
+              sed -i "/^\s*\*\.${ext}\s*$/d" "$gitignore_file"
+            done
+          done
+
+      - name: 'Commit and push'
+        run: |
+          BUILD_OUTPUT="${{ steps.meta.outputs.buildOutput }}"
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+
+          git add .
+
+          # Force-add build output directories that may still be gitignored
+          for dirname in build public dist out "$BUILD_OUTPUT"; do
+            find . -name "$dirname" -type d -maxdepth 4 -not -path "./.git/*" | while read d; do
+              if [ -f "$d/index.html" ]; then
+                echo "Force-adding: $d"
+                git add -f "$d/"
+              fi
+            done
+          done
+
+          if git diff --staged --quiet; then
+            echo "No changes to commit."
+          else
+            git commit --no-verify -m "Stage 1: sync + translate + build from ${{ steps.sha.outputs.sha }}"
+            git push origin main
+          fi
