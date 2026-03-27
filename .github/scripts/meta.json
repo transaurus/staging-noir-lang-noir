@@ -1,0 +1,10 @@
+{
+  "sourceUrl": "https://github.com/noir-lang/noir",
+  "branch": "master",
+  "docusaurusRoot": "docs",
+  "configFile": "docs/docusaurus.config.ts",
+  "translateCommand": "ENV=dev ./node_modules/.bin/docusaurus write-translations",
+  "buildCommand": "ENV=dev ./node_modules/.bin/docusaurus build",
+  "buildOutput": "build",
+  "packageManager": "yarn"
+}
