@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<OpenSearchDescription xmlns="http://a9.com/-/spec/opensearch/1.1/"
+                       xmlns:moz="http://www.mozilla.org/2006/browser/search/">
+  <ShortName>Noir Documentation</ShortName>
+  <Description>Search Noir Documentation</Description>
+  <InputEncoding>UTF-8</InputEncoding>
+  <Image width="16" height="16" type="image/x-icon">https://noir-lang.org/img/favicon.svg</Image>
+  <Url type="text/html" method="get" template="https://noir-lang.org/search?q={searchTerms}"/>
+  <Url type="application/opensearchdescription+xml" rel="self" template="https://noir-lang.org/opensearch.xml" />
+  <moz:SearchForm>https://noir-lang.org/</moz:SearchForm>
+</OpenSearchDescription>

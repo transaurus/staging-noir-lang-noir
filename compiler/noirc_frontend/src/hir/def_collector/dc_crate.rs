@@ -1,0 +1,877 @@
+use super::dc_mod::collect_defs;
+use super::errors::{DefCollectorErrorKind, DuplicateType};
+use crate::elaborator::Elaborator;
+use crate::graph::CrateId;
+use crate::hir::comptime::{ComptimeError, InterpreterError};
+use crate::hir::def_map::{CrateDefMap, LocalModuleId, ModuleId};
+use crate::hir::resolution::errors::ResolverError;
+use crate::hir::type_check::{ExpectingOtherError, TypeCheckError};
+use crate::locations::ReferencesTracker;
+use crate::token::SecondaryAttribute;
+use crate::usage_tracker::UnusedItem;
+use crate::{ResolvedGenerics, Type};
+
+use crate::hir::Context;
+use crate::hir::resolution::import::{ImportDirective, ResolvedImport, resolve_import};
+
+use crate::ast::{Expression, NoirEnumeration, PathKind, TypeAlias};
+use crate::node_interner::{
+    FuncId, GlobalId, ModuleAttributes, NodeInterner, ReferenceId, TraitId, TraitImplId,
+    TypeAliasId, TypeId,
+};
+
+use crate::ast::{
+    Ident, ItemVisibility, LetStatement, NoirFunction, NoirStruct, NoirTrait, Path, PathSegment,
+    UnresolvedGenerics, UnresolvedTraitConstraint, UnresolvedType, UnsupportedNumericGenericType,
+};
+
+use crate::elaborator::FrontendOptions;
+use crate::parser::{ParserError, SortedModule};
+use noirc_errors::{CustomDiagnostic, Location, Span};
+
+use fm::FileId;
+use iter_extended::vecmap;
+use rustc_hash::FxHashMap as HashMap;
+use std::collections::{BTreeMap, HashSet};
+use std::fmt::Write;
+use std::ops::IndexMut;
+use std::path::PathBuf;
+use std::vec;
+
+/// Stores all of the unresolved functions in a particular file/mod
+#[derive(Clone, Debug)]
+pub struct UnresolvedFunctions {
+    pub file_id: FileId,
+    pub functions: Vec<(LocalModuleId, FuncId, NoirFunction)>,
+    pub trait_id: Option<TraitId>,
+
+    // The object type this set of functions was declared on, if there is one.
+    pub self_type: Option<Type>,
+}
+
+impl UnresolvedFunctions {
+    pub fn push_fn(&mut self, mod_id: LocalModuleId, func_id: FuncId, func: NoirFunction) {
+        self.functions.push((mod_id, func_id, func));
+    }
+
+    pub fn function_ids(&self) -> Vec<FuncId> {
+        vecmap(&self.functions, |(_, id, _)| *id)
+    }
+}
+
+pub struct UnresolvedStruct {
+    pub file_id: FileId,
+    pub module_id: LocalModuleId,
+    pub struct_def: NoirStruct,
+}
+
+pub struct UnresolvedEnum {
+    pub file_id: FileId,
+    pub module_id: LocalModuleId,
+    pub enum_def: NoirEnumeration,
+}
+
+#[derive(Clone)]
+pub struct UnresolvedTrait {
+    pub file_id: FileId,
+    pub module_id: LocalModuleId,
+    pub crate_id: CrateId,
+    pub trait_def: NoirTrait,
+    pub method_ids: HashMap<String, FuncId>,
+    pub fns_with_default_impl: UnresolvedFunctions,
+}
+
+#[derive(Clone, Debug)]
+pub struct UnresolvedTraitImpl {
+    pub file_id: FileId,
+    pub module_id: LocalModuleId,
+    pub r#trait: UnresolvedType,
+    pub object_type: UnresolvedType,
+    pub methods: UnresolvedFunctions,
+    pub generics: UnresolvedGenerics,
+    pub where_clause: Vec<UnresolvedTraitConstraint>,
+
+    pub associated_types: Vec<(Ident, Option<UnresolvedType>)>,
+    pub associated_constants: Vec<(Ident, Option<UnresolvedType>, Expression)>,
+
+    // Every field after this line is filled in later in the elaborator
+    pub trait_id: Option<TraitId>,
+    pub impl_id: Option<TraitImplId>,
+    pub resolved_object_type: Option<Type>,
+    pub resolved_generics: ResolvedGenerics,
+    pub unresolved_associated_types: Vec<(Ident, UnresolvedType)>,
+}
+
+#[derive(Clone)]
+pub struct UnresolvedTypeAlias {
+    pub file_id: FileId,
+    pub crate_id: CrateId,
+    pub module_id: LocalModuleId,
+    pub type_alias_def: TypeAlias,
+}
+
+#[derive(Debug, Clone)]
+pub struct UnresolvedGlobal {
+    pub file_id: FileId,
+    pub module_id: LocalModuleId,
+    pub global_id: GlobalId,
+    pub stmt_def: LetStatement,
+    pub visibility: ItemVisibility,
+}
+
+pub struct ModuleAttribute {
+    // The file in which the module is defined
+    pub file_id: FileId,
+    // The module this attribute is attached to
+    pub module_id: LocalModuleId,
+
+    // The file where the attribute exists (it could be the same as `file_id`
+    // or a different one if it is an outer attribute in the parent of the module it applies to)
+    pub attribute_file_id: FileId,
+
+    // The module where the attribute is defined (similar to `attribute_file_id`,
+    // it could be different than `module_id` for inner attributes)
+    pub attribute_module_id: LocalModuleId,
+    pub attribute: SecondaryAttribute,
+    pub is_inner: bool,
+}
+
+/// Given a Crate root, collect all definitions in that crate
+pub struct DefCollector {
+    pub(crate) def_map: CrateDefMap,
+    pub(crate) imports: Vec<ImportDirectiveBatch>,
+    pub(crate) items: CollectedItems,
+}
+
+/// A batch of imports that resulted from desugaring a single import statement.
+/// This can happen as a result of expanding `use foo::{bar, baz}` into `use foo:bar; use foo:baz;`.
+/// Keeping the desugared imports as a batch is important because all imports in a batch
+/// will first be resolved, and just then those items will be brought in scope.
+/// This lets `use foo::{foo, bar}` work by first resolving `foo::foo`, then resolving `foo::bar`,
+/// then finally adding those items to scope. Compare this with `use foo::foo; use foo::bar;` where
+/// the second import will likely error as `foo` will mean `foo::foo` and not `foo`.
+pub type ImportDirectiveBatch = Vec<ImportDirective>;
+
+#[derive(Default)]
+pub struct CollectedItems {
+    pub functions: Vec<UnresolvedFunctions>,
+    pub(crate) structs: BTreeMap<TypeId, UnresolvedStruct>,
+    pub(crate) enums: BTreeMap<TypeId, UnresolvedEnum>,
+    pub(crate) type_aliases: BTreeMap<TypeAliasId, UnresolvedTypeAlias>,
+    pub(crate) traits: BTreeMap<TraitId, UnresolvedTrait>,
+    pub globals: Vec<UnresolvedGlobal>,
+    pub(crate) impls: ImplMap,
+    pub(crate) trait_impls: Vec<UnresolvedTraitImpl>,
+    pub(crate) module_attributes: Vec<ModuleAttribute>,
+}
+
+impl CollectedItems {
+    pub fn is_empty(&self) -> bool {
+        self.functions.is_empty()
+            && self.structs.is_empty()
+            && self.enums.is_empty()
+            && self.type_aliases.is_empty()
+            && self.traits.is_empty()
+            && self.globals.is_empty()
+            && self.impls.is_empty()
+            && self.trait_impls.is_empty()
+    }
+}
+
+/// Maps the type and the module id in which the impl is defined to the functions contained in that
+/// impl along with the generics declared on the impl itself. This also contains the Span
+/// of the object_type of the impl, used to issue an error if the object type fails to resolve.
+///
+/// Note that because these are keyed by unresolved types, the impl map is one of the few instances
+/// of HashMap rather than BTreeMap. For this reason, we should be careful not to iterate over it
+/// since it would be non-deterministic.
+pub(crate) type ImplMap = HashMap<
+    (UnresolvedType, LocalModuleId),
+    Vec<(UnresolvedGenerics, Location, UnresolvedFunctions)>,
+>;
+
+/// Wraps a list of compilation errors.
+///
+/// This can serve as a convenient point for debugging where a certain error is emitted.
+#[derive(Debug, Default, Clone)]
+pub struct CompilationErrors(Vec<CompilationError>);
+
+impl CompilationErrors {
+    pub(crate) fn push(&mut self, error: impl Into<CompilationError>) {
+        let error: CompilationError = error.into();
+        // Filter out internal control flow errors that should not be displayed
+        if !error.should_be_filtered() {
+            self.0.push(error);
+        }
+    }
+
+    pub(crate) fn extend<E: Into<CompilationError>>(
+        &mut self,
+        errors: impl IntoIterator<Item = E>,
+    ) {
+        for error in errors {
+            self.push(error);
+        }
+    }
+
+    pub(crate) fn len(&self) -> usize {
+        self.0.len()
+    }
+
+    pub(crate) fn truncate(&mut self, len: usize) {
+        self.0.truncate(len);
+    }
+
+    pub(crate) fn iter(&self) -> impl Iterator<Item = &CompilationError> {
+        self.0.iter()
+    }
+
+    pub(crate) fn map(self, f: impl Fn(CompilationError) -> CompilationError) -> Self {
+        Self(vecmap(self.0, f))
+    }
+
+    pub fn into_errors(self) -> Vec<CompilationError> {
+        self.0
+    }
+}
+
+impl IntoIterator for CompilationErrors {
+    type Item = CompilationError;
+    type IntoIter = <Vec<CompilationError> as IntoIterator>::IntoIter;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.into_iter()
+    }
+}
+
+impl AsRef<[CompilationError]> for CompilationErrors {
+    fn as_ref(&self) -> &[CompilationError] {
+        &self.0
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum CompilationError {
+    ParseError(ParserError),
+    DefinitionError(DefCollectorErrorKind),
+    ResolverError(ResolverError),
+    TypeError(TypeCheckError),
+    InterpreterError(InterpreterError),
+    ComptimeError(ComptimeError),
+    DebugComptimeScopeNotFound(Vec<PathBuf>, Location),
+}
+
+impl CompilationError {
+    /// Returns the primary location where this error happened.
+    pub fn location(&self) -> Location {
+        match self {
+            CompilationError::ParseError(error) => error.location(),
+            CompilationError::DefinitionError(error) => error.location(),
+            CompilationError::ResolverError(error) => error.location(),
+            CompilationError::TypeError(error) => error.location(),
+            CompilationError::InterpreterError(error) => error.location(),
+            CompilationError::ComptimeError(error) => error.location(),
+            CompilationError::DebugComptimeScopeNotFound(_, location) => *location,
+        }
+    }
+
+    pub(crate) fn is_error(&self) -> bool {
+        // This is a bit expensive but not all error types have a `is_warning` method
+        // and it'd lead to code duplication to add them. `CompilationError::is_error`
+        // also isn't expected to be called too often.
+        CustomDiagnostic::from(self).is_error()
+    }
+
+    pub(crate) fn is_expecting_other_error(&self) -> bool {
+        self.as_expecting_other_error().is_some()
+    }
+
+    pub(crate) fn as_expecting_other_error(&self) -> Option<&ExpectingOtherError> {
+        match self {
+            CompilationError::TypeError(TypeCheckError::ExpectingOtherError(e))
+            | CompilationError::InterpreterError(InterpreterError::ExpectingOtherError(e)) => {
+                Some(e)
+            }
+            _ => None,
+        }
+    }
+
+    pub(crate) fn should_be_filtered(&self) -> bool {
+        let CompilationError::InterpreterError(error) = self else {
+            return false;
+        };
+
+        error.should_be_filtered()
+    }
+}
+
+impl std::fmt::Display for CompilationError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            CompilationError::ParseError(error) => write!(f, "{error}"),
+            CompilationError::DefinitionError(error) => write!(f, "{error}"),
+            CompilationError::ResolverError(error) => write!(f, "{error}"),
+            CompilationError::TypeError(error) => write!(f, "{error}"),
+            CompilationError::InterpreterError(error) => write!(f, "{error:?}"),
+            CompilationError::DebugComptimeScopeNotFound(error, _) => write!(f, "{error:?}"),
+            CompilationError::ComptimeError(error) => write!(f, "{error:?}"),
+        }
+    }
+}
+
+impl<'a> From<&'a CompilationError> for CustomDiagnostic {
+    fn from(value: &'a CompilationError) -> Self {
+        match value {
+            CompilationError::ParseError(error) => error.into(),
+            CompilationError::DefinitionError(error) => error.into(),
+            CompilationError::ResolverError(error) => error.into(),
+            CompilationError::TypeError(error) => error.into(),
+            CompilationError::InterpreterError(error) => error.into(),
+            CompilationError::ComptimeError(error) => error.into(),
+            CompilationError::DebugComptimeScopeNotFound(error, _) => {
+                let msg = "multiple files found matching --debug-comptime path".into();
+                let secondary = error.iter().fold(String::new(), |mut output, path| {
+                    let _ = writeln!(output, "    {}", path.display());
+                    output
+                });
+                // NOTE: this location is empty as it is not expected to be displayed
+                let dummy_location = Location::dummy();
+                CustomDiagnostic::simple_error(msg, secondary, dummy_location)
+            }
+        }
+    }
+}
+
+impl From<ParserError> for CompilationError {
+    fn from(value: ParserError) -> Self {
+        CompilationError::ParseError(value)
+    }
+}
+
+impl From<DefCollectorErrorKind> for CompilationError {
+    fn from(value: DefCollectorErrorKind) -> Self {
+        CompilationError::DefinitionError(value)
+    }
+}
+
+impl From<ResolverError> for CompilationError {
+    fn from(value: ResolverError) -> Self {
+        CompilationError::ResolverError(value)
+    }
+}
+
+impl From<TypeCheckError> for CompilationError {
+    fn from(value: TypeCheckError) -> Self {
+        CompilationError::TypeError(value)
+    }
+}
+
+impl From<UnsupportedNumericGenericType> for CompilationError {
+    fn from(value: UnsupportedNumericGenericType) -> Self {
+        Self::ResolverError(value.into())
+    }
+}
+
+impl DefCollector {
+    pub fn new(def_map: CrateDefMap) -> DefCollector {
+        DefCollector {
+            def_map,
+            imports: vec![],
+            items: CollectedItems {
+                functions: vec![],
+                structs: BTreeMap::new(),
+                enums: BTreeMap::new(),
+                type_aliases: BTreeMap::new(),
+                traits: BTreeMap::new(),
+                impls: HashMap::default(),
+                globals: vec![],
+                trait_impls: vec![],
+                module_attributes: vec![],
+            },
+        }
+    }
+
+    /// Collect all of the definitions in a given crate into a CrateDefMap
+    /// Modules which are not a part of the module hierarchy starting with
+    /// the root module, will be ignored.
+    #[allow(clippy::too_many_arguments)]
+    pub fn collect_crate_and_dependencies(
+        mut def_map: CrateDefMap,
+        context: &mut Context,
+        ast: SortedModule,
+        root_file_id: FileId,
+        options: FrontendOptions,
+    ) -> Vec<CompilationError> {
+        let mut errors = CompilationErrors::default();
+        let crate_id = def_map.krate();
+
+        // Recursively resolve the dependencies
+        //
+        // Dependencies are fetched from the crate graph
+        // Then added these to the context of DefMaps once they are resolved
+        //
+        let crate_graph = &context.crate_graph[crate_id];
+
+        for dep in crate_graph.dependencies.clone() {
+            errors.extend(CrateDefMap::collect_defs(dep.crate_id, context, options));
+
+            let dep_def_map =
+                context.def_map(&dep.crate_id).expect("ice: def map was just created");
+
+            let dep_def_root = dep_def_map.root();
+            let module_id = ModuleId { krate: dep.crate_id, local_id: dep_def_root };
+            // Add this crate as a dependency by linking it's root module
+            def_map.extern_prelude.insert(dep.as_name(), module_id);
+
+            let location = dep_def_map[dep_def_root].location;
+            let attributes = ModuleAttributes {
+                name: dep.as_name(),
+                location,
+                parent: None,
+                visibility: ItemVisibility::Public,
+            };
+            context.def_interner.add_module_attributes(module_id, attributes);
+        }
+
+        // At this point, all dependencies are resolved and type checked.
+        //
+        // It is now possible to collect all of the definitions of this crate.
+        let crate_root = def_map.root();
+        let def_collector = DefCollector::new(def_map);
+
+        let reuse_existing_module_declarations = false;
+        Self::collect_defs_and_elaborate(
+            ast,
+            root_file_id,
+            crate_root,
+            crate_id,
+            context,
+            def_collector,
+            options,
+            reuse_existing_module_declarations,
+            &mut errors,
+        );
+
+        Self::check_unused_items(context, crate_id, &mut errors);
+
+        filter_expecting_other_errors(errors.into_errors())
+    }
+
+    /// This method does several things:
+    ///
+    /// 1. Collects definitions in the given module
+    /// 2. Injects the prelude in the collected modules
+    /// 3. Processes all of the imports collected during definition collection
+    /// 4. Elaborates all of the collected items
+    ///
+    /// Any errors are appended to `errors`.
+    ///
+    /// If `reuse_existing_module_declarations` is true, when module declarations like `mod some_module;` are
+    /// encountered they will try to be found in existing modules in the `def_collector.def_map`
+    /// field. This is only `true` when re-checking a file in LSP, where nested modules don't
+    /// need to be re-collected and re-type-checked.
+    #[allow(clippy::too_many_arguments)]
+    pub fn collect_defs_and_elaborate(
+        ast: SortedModule,
+        file_id: FileId,
+        local_module_id: LocalModuleId,
+        crate_id: CrateId,
+        context: &mut Context,
+        mut def_collector: DefCollector,
+        options: FrontendOptions,
+        reuse_existing_module_declarations: bool,
+        errors: &mut CompilationErrors,
+    ) {
+        let module_id = ModuleId { krate: crate_id, local_id: local_module_id };
+        context
+            .def_interner
+            .set_doc_comments(ReferenceId::Module(module_id), ast.inner_doc_comments.clone());
+
+        // Check how many modules there were before we start collecting items
+        let modules_count_before_collect = def_collector.def_map.modules().iter().count();
+
+        // Collecting module declarations with ModCollector
+        // and lowering the functions
+        // i.e. Use a mod collector to collect the nodes at the root module
+        // and process them
+        errors.extend(collect_defs(
+            &mut def_collector,
+            ast,
+            file_id,
+            local_module_id,
+            crate_id,
+            context,
+            reuse_existing_module_declarations,
+        ));
+
+        let submodules =
+            vecmap(def_collector.def_map.modules().iter(), |(index, _)| LocalModuleId::new(index));
+        // Add the current crate to the collection of DefMaps
+        context.def_maps.insert(crate_id, def_collector.def_map);
+
+        inject_prelude(crate_id, context, local_module_id, &mut def_collector.imports);
+
+        // We only need to inject the prelude for modules that were collected in `collect_defs`.
+        // This isn't important or necessary in the compiler. However, in LSP a file might be
+        // re-checked multiple times, ending in new modules in addition to many already existing
+        // before this function call, and there's no need to inject the prelude in those existing
+        // modules (it's very slow).
+        for submodule in submodules.iter().skip(modules_count_before_collect) {
+            inject_prelude(crate_id, context, *submodule, &mut def_collector.imports);
+        }
+
+        Self::process_imports(def_collector.imports, crate_id, context, errors);
+
+        let debug_comptime_in_file = options.debug_comptime_in_file.and_then(|file_suffix| {
+            let file = context.file_manager.find_by_path_suffix(file_suffix);
+            file.unwrap_or_else(|error| {
+                let location = Location::new(Span::empty(0), file_id);
+                errors.push(CompilationError::DebugComptimeScopeNotFound(error, location));
+                None
+            })
+        });
+
+        let cli_options = crate::elaborator::ElaboratorOptions {
+            debug_comptime_in_file,
+            enabled_unstable_features: options.enabled_unstable_features,
+            disable_required_unstable_features: options.disable_required_unstable_features,
+        };
+
+        let more_errors =
+            Elaborator::elaborate(context, crate_id, def_collector.items, cli_options);
+
+        errors.extend(more_errors);
+    }
+
+    fn process_imports(
+        mut collected_imports: Vec<ImportDirectiveBatch>,
+        crate_id: CrateId,
+        context: &mut Context,
+        outer_errors: &mut CompilationErrors,
+    ) {
+        let mut inner_errors = CompilationErrors::default();
+
+        // Resolve unresolved imports collected from the crate, one by one.
+        // Imports that cannot be resolved don't error right away. Instead, they are put in
+        // `import_with_errors`. After trying to resolve all imports, we'll try to resolve, once
+        // more, the imports that previously failed. They can succeed this time if they import
+        // a re-export that is defined later in the crate, as in this case:
+        //
+        // ```noir
+        // mod one {
+        //     // This will fail to resolve the first time, as it refers to a re-export that comes
+        //     // later on. However, after the re-export below is processed, this import will succeed.
+        //     use crate::two::Exported;
+        // }
+        // mod two {
+        //     mod three {
+        //         pub struct Exported {}
+        //     }
+        //     pub use three::Exported;
+        // }
+        // ```
+        //
+        // An alternative way could be to first process pub exports, then pub(crate) exports, then
+        // private exports, but this way is a bit more robust as the above case will work even if
+        // the first `use` is `pub`.
+        loop {
+            let mut imports_with_errors = Vec::new();
+
+            // Keep track of whether we could at least resolve one import. If not, we shouldn't
+            // continue trying to resolve imports indefinitely.
+            let mut resolved_at_least_one_import = false;
+
+            // Resolve unresolved imports collected from the crate, by batch
+            for batch in collected_imports {
+                // First resolve all imports in the batch.
+                // See the doc comments on ImportDirectiveBatch for an explanation of why this is done.
+                let resolved_batch = vecmap(batch, |collected_import| {
+                    let local_module_id = collected_import.module_id;
+                    let module_id = ModuleId { krate: crate_id, local_id: local_module_id };
+
+                    let resolved_import = resolve_import(
+                        collected_import.path.clone(),
+                        module_id,
+                        &context.def_maps,
+                        &mut context.usage_tracker,
+                        Some(ReferencesTracker::new(&mut context.def_interner)),
+                    );
+                    (resolved_import, collected_import)
+                });
+
+                let batch_has_errors = resolved_batch.iter().any(|(result, _)| result.is_err());
+                if batch_has_errors {
+                    // If there are errors with this batch, remember it and proceed with the next batch
+                    imports_with_errors.push(resolved_batch);
+                } else {
+                    // Successful batches are processed right away
+                    resolved_at_least_one_import = true;
+
+                    for (result, collected_import) in resolved_batch {
+                        let resolved_import =
+                            result.expect("We already checked that all results are Ok");
+                        Self::process_resolved_import(
+                            resolved_import,
+                            &collected_import,
+                            crate_id,
+                            context,
+                            &mut inner_errors,
+                        );
+                    }
+                }
+            }
+
+            // If we could process all batches without errors, we are done.
+            if imports_with_errors.is_empty() {
+                break;
+            }
+
+            // If we made some progress, try again with batches that errored.
+            // They might succeed next time.
+            if resolved_at_least_one_import {
+                collected_imports = vecmap(imports_with_errors, |batch| {
+                    vecmap(batch, |(_, collected_import)| collected_import)
+                });
+                continue;
+            }
+
+            // If we didn't make any progress, give up and:
+            // 1. process successful imports
+            // 2. record errors of unsuccessful ones
+            for batch in imports_with_errors {
+                for (result, collected_import) in batch {
+                    match result {
+                        Ok(resolved_import) => {
+                            Self::process_resolved_import(
+                                resolved_import,
+                                &collected_import,
+                                crate_id,
+                                context,
+                                &mut inner_errors,
+                            );
+                        }
+                        Err(error) => {
+                            let error = DefCollectorErrorKind::PathResolutionError(error);
+                            inner_errors.push(error);
+                        }
+                    }
+                }
+            }
+            break;
+        }
+
+        // Because a use tree like `use foo::{bar, baz}` is desugared into `use foo::bar; use foo::baz;`,
+        // if `foo` is not found then the error will happen twice. Given that only one error kind can happen
+        // per path segment (either the segment was not found, or it's private, or it doesn't resolve to a module),
+        // it's safe to only keep one error per location.
+        let inner_errors = inner_errors.into_iter().map(|error| (error.location(), error));
+        let inner_errors = inner_errors.collect::<HashMap<_, _>>().into_values();
+        outer_errors.extend(inner_errors);
+    }
+
+    /// Processes a resolved import by bringing into scope the imported item.
+    fn process_resolved_import(
+        resolved_import: ResolvedImport,
+        collected_import: &ImportDirective,
+        crate_id: CrateId,
+        context: &mut Context,
+        errors: &mut CompilationErrors,
+    ) {
+        let local_module_id = collected_import.module_id;
+        let current_def_map = context.def_maps.get_mut(&crate_id).unwrap();
+        let file_id = current_def_map.file_id(local_module_id);
+
+        let has_path_resolution_error = !resolved_import.errors.is_empty();
+        for error in resolved_import.errors {
+            errors.push(DefCollectorErrorKind::PathResolutionError(error));
+        }
+
+        // Populate module namespaces according to the imports used
+        let name = collected_import.name();
+        let visibility = collected_import.visibility;
+        let is_prelude = collected_import.is_prelude;
+        for (module_def_id, item_visibility, _) in resolved_import.namespace.iter_items() {
+            if item_visibility < visibility {
+                errors.push(DefCollectorErrorKind::CannotReexportItemWithLessVisibility {
+                    item_name: name.clone(),
+                    desired_visibility: visibility,
+                });
+            }
+            let visibility = visibility.min(item_visibility);
+
+            let result = current_def_map.index_mut(local_module_id).import(
+                name.clone(),
+                visibility,
+                module_def_id,
+                is_prelude,
+            );
+
+            // If we error on path resolution don't also say it's unused (in case it ends up being unused)
+            if !has_path_resolution_error {
+                let defining_module = ModuleId { krate: crate_id, local_id: local_module_id };
+
+                context.usage_tracker.add_unused_item(
+                    defining_module,
+                    name.clone(),
+                    UnusedItem::Import,
+                    visibility,
+                );
+
+                if visibility != ItemVisibility::Private {
+                    context.def_interner.register_name_for_auto_import(
+                        name.to_string(),
+                        module_def_id,
+                        file_id,
+                        visibility,
+                        Some(defining_module),
+                    );
+
+                    context.def_interner.add_reexport(
+                        module_def_id,
+                        defining_module,
+                        name.clone(),
+                        visibility,
+                    );
+                }
+            }
+
+            if let Some(ref alias) = collected_import.alias {
+                add_import_reference(module_def_id, alias, &mut context.def_interner, file_id);
+            }
+
+            if let Err((first_def, second_def)) = result {
+                let err = DefCollectorErrorKind::Duplicate {
+                    typ: DuplicateType::Import,
+                    first_def,
+                    second_def,
+                };
+                errors.push(err);
+            }
+        }
+    }
+
+    fn check_unused_items(context: &Context, crate_id: CrateId, errors: &mut CompilationErrors) {
+        let unused_imports = context.usage_tracker.unused_items().iter();
+        let unused_imports = unused_imports.filter(|(module_id, _)| module_id.krate == crate_id);
+        let mut unused_errors = unused_imports
+            .flat_map(|(_, unused_items)| {
+                unused_items.iter().map(|(ident, unused_item)| {
+                    let ident = ident.clone();
+                    CompilationError::ResolverError(ResolverError::UnusedItem {
+                        ident,
+                        item: *unused_item,
+                    })
+                })
+            })
+            .collect::<Vec<_>>();
+
+        // Make sure errors always show up in the same order when compiling the same codebase
+        unused_errors.sort_by_key(|error| error.location());
+
+        errors.extend(unused_errors);
+    }
+}
+
+fn add_import_reference(
+    def_id: crate::hir::def_map::ModuleDefId,
+    name: &Ident,
+    interner: &mut NodeInterner,
+    file_id: FileId,
+) {
+    if name.span() == Span::empty(0) {
+        // We ignore empty spans at 0 location, this must be Stdlib
+        return;
+    }
+
+    let location = Location::new(name.span(), file_id);
+    interner.add_module_def_id_reference(def_id, location, false);
+}
+
+fn inject_prelude(
+    crate_id: CrateId,
+    context: &mut Context,
+    crate_root: LocalModuleId,
+    collected_imports: &mut Vec<ImportDirectiveBatch>,
+) {
+    if crate_id.is_stdlib() {
+        return;
+    }
+
+    let location = Location::dummy();
+
+    let segments: Vec<_> = "std::prelude"
+        .split("::")
+        .map(|segment| PathSegment::from(Ident::new(segment.into(), location)))
+        .collect();
+
+    let path = Path {
+        segments: segments.clone(),
+        kind: PathKind::Absolute,
+        location,
+        kind_location: location,
+    };
+
+    let Ok(resolved_import) = resolve_import(
+        path,
+        ModuleId { krate: crate_id, local_id: crate_root },
+        &context.def_maps,
+        &mut context.usage_tracker,
+        None, // references tracker
+    ) else {
+        return;
+    };
+
+    assert!(resolved_import.errors.is_empty(), "Tried to add private item to prelude");
+
+    let (module_def_id, _, _) =
+        resolved_import.namespace.types.expect("couldn't resolve std::prelude");
+    let module_id = module_def_id.as_module().expect("std::prelude should be a module");
+    let directives = vecmap(context.module(module_id).scope().names(), |path| {
+        let mut segments = segments.clone();
+        segments.push(PathSegment::from(Ident::new(path.to_string(), location)));
+
+        let path = Path { segments, kind: PathKind::Absolute, location, kind_location: location };
+
+        ImportDirective {
+            visibility: ItemVisibility::Private,
+            module_id: crate_root,
+            path,
+            alias: None,
+            is_prelude: true,
+        }
+    });
+
+    collected_imports.insert(0, directives);
+}
+
+/// Filter the errors so that:
+/// * if we have any errors which are _not_ [ExpectingOtherError], then we remove all [ExpectingOtherError] instances
+/// * if there are no other kind of errors, then we leave and deduplicate the [ExpectingOtherError]s
+fn filter_expecting_other_errors(mut errors: Vec<CompilationError>) -> Vec<CompilationError> {
+    let has_expected_errors =
+        errors.iter().any(|error| !error.is_expecting_other_error() && error.is_error());
+
+    if has_expected_errors {
+        errors.retain(|error| !error.is_expecting_other_error());
+        errors
+    } else {
+        dedup_expecting_other_errors(errors)
+    }
+}
+
+/// The same `ExpectingOtherError` can be emitted multiple times.
+/// This function removes duplicates so we don't see the same error
+/// in the output repeatedly.
+fn dedup_expecting_other_errors(mut errors: Vec<CompilationError>) -> Vec<CompilationError> {
+    // Using a HashSet of the inner error, because CompilationError does not implement Ord or Hash.
+    let mut seen: HashSet<ExpectingOtherError> = HashSet::new();
+    errors.retain(|error| match error.as_expecting_other_error() {
+        Some(e) if seen.contains(e) => false,
+        Some(e) => {
+            seen.insert(e.clone());
+            true
+        }
+        None => true,
+    });
+    errors
+}

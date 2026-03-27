@@ -1,0 +1,19 @@
+---
+source: tooling/nargo_cli/tests/execute.rs
+expression: stderr
+---
+error: Comptime-only type `Quoted` cannot be used in non-comptime function
+  ┌─ src/main.nr:5:11
+  │
+5 │ fn foo(q: Quoted) {
+  │           ------
+  │
+
+error: `quote` cannot be used in runtime code
+  ┌─ src/main.nr:2:9
+  │
+2 │     foo(quote { test })
+  │         -------------- Wrap this in a `comptime` block or function to use it
+  │
+
+Aborting due to 2 previous errors

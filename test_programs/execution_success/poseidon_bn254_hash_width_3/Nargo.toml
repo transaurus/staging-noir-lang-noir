@@ -1,0 +1,10 @@
+[package]
+name = "poseidon_bn254_hash_width_3"
+type = "bin"
+authors = [""]
+compiler_version = ">=0.31.0"
+# Test usage of `expression_width` field
+expression_width = "3"
+
+[dependencies]
+poseidon = { tag = "v0.2.4", git = "https://github.com/noir-lang/poseidon" }

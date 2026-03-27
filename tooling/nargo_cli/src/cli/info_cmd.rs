@@ -1,0 +1,142 @@
+use bn254_blackbox_solver::Bn254BlackBoxSolver;
+use clap::Args;
+use nargo::{
+    constants::PROVER_INPUT_FILE, foreign_calls::DefaultForeignCallBuilder, package::Package,
+    workspace::Workspace,
+};
+use nargo_toml::PackageSelection;
+use noir_artifact_cli::fs::{artifact::read_program_from_file, inputs::read_inputs_from_file};
+use noirc_artifacts::program::ProgramArtifact;
+use noirc_artifacts_info::{
+    FunctionInfo, InfoReport, ProgramInfo, count_opcodes_and_gates_in_program, show_info_report,
+};
+use noirc_driver::CompileOptions;
+use rayon::prelude::*;
+
+use crate::errors::CliError;
+
+use super::{LockType, PackageOptions, WorkspaceCommand, compile_cmd::compile_workspace_full};
+
+/// Provides detailed information on each of a program's function (represented by a single circuit)
+///
+/// Current information provided per circuit:
+/// 1. The number of ACIR opcodes
+/// 2. Counts the final number gates in the circuit used by a backend
+#[derive(Debug, Clone, Args)]
+#[clap(visible_alias = "i")]
+pub(crate) struct InfoCommand {
+    #[clap(flatten)]
+    pub(super) package_options: PackageOptions,
+
+    /// Output a JSON formatted report. Changes to this format are not currently considered breaking.
+    #[clap(long, hide = true)]
+    json: bool,
+
+    #[clap(long)]
+    profile_execution: bool,
+
+    /// The name of the toml file which contains the inputs for the prover
+    #[clap(long, short, default_value = PROVER_INPUT_FILE)]
+    prover_name: String,
+
+    #[clap(flatten)]
+    compile_options: CompileOptions,
+}
+
+impl WorkspaceCommand for InfoCommand {
+    fn package_selection(&self) -> PackageSelection {
+        self.package_options.package_selection()
+    }
+
+    fn lock_type(&self) -> LockType {
+        LockType::Exclusive
+    }
+}
+
+pub(crate) fn run(mut args: InfoCommand, workspace: Workspace) -> Result<(), CliError> {
+    if args.json {
+        // In order to have a machine readable output, we cannot allow the program to print arbitrary data to stdout.
+        args.compile_options.disable_comptime_printing = true;
+    }
+
+    if args.profile_execution {
+        // Execution profiling is only relevant with the Brillig VM
+        // as a constrained circuit should have totally flattened control flow (e.g. loops and if statements).
+        args.compile_options.force_brillig = true;
+    }
+    // Compile the full workspace in order to generate any build artifacts.
+    let debug_compile_stdin = None;
+    compile_workspace_full(&workspace, &args.compile_options, debug_compile_stdin)?;
+
+    let binary_packages: Vec<(Package, ProgramArtifact)> = workspace
+        .into_iter()
+        .filter(|package| package.is_binary())
+        .map(|package| -> Result<(Package, ProgramArtifact), CliError> {
+            let program_artifact_path = workspace.package_build_path(package);
+            let program = read_program_from_file(&program_artifact_path)?;
+            Ok((package.clone(), program))
+        })
+        .collect::<Result<_, _>>()?;
+
+    let program_info = if args.profile_execution {
+        assert!(
+            args.compile_options.force_brillig,
+            "Internal CLI Error: --force-brillig must be active when --profile-execution is active"
+        );
+        profile_brillig_execution(binary_packages, &args.prover_name)?
+    } else {
+        binary_packages
+            .into_iter()
+            .par_bridge()
+            .map(|(package, program)| {
+                let package_name = package.name.to_string();
+                count_opcodes_and_gates_in_program(program, package_name)
+            })
+            .collect()
+    };
+
+    let info_report = InfoReport { programs: program_info };
+    show_info_report(info_report, args.json);
+
+    Ok(())
+}
+
+fn profile_brillig_execution(
+    binary_packages: Vec<(Package, ProgramArtifact)>,
+    prover_name: &str,
+) -> Result<Vec<ProgramInfo>, CliError> {
+    let mut program_info = Vec::new();
+    for (package, program_artifact) in &binary_packages {
+        // Parse the initial witness values from Prover.toml or Prover.json
+        let (inputs_map, _) = read_inputs_from_file(
+            &package.root_dir.join(prover_name).with_extension("toml"),
+            &program_artifact.abi,
+        )?;
+        let initial_witness = program_artifact.abi.encode(&inputs_map, None)?;
+
+        let (_, profiling_samples) = nargo::ops::execute_program_with_profiling(
+            &program_artifact.bytecode,
+            initial_witness,
+            &Bn254BlackBoxSolver,
+            &mut DefaultForeignCallBuilder::default().build(),
+        )
+        .map_err(|e| {
+            CliError::Generic(format!(
+                "failed to execute '{}': {}",
+                package.root_dir.to_string_lossy(),
+                e
+            ))
+        })?;
+
+        program_info.push(ProgramInfo {
+            package_name: package.name.to_string(),
+            functions: vec![FunctionInfo { name: "main".to_string(), opcodes: 0 }],
+            unconstrained_functions_opcodes: profiling_samples.len(),
+            unconstrained_functions: vec![FunctionInfo {
+                name: "main".to_string(),
+                opcodes: profiling_samples.len(),
+            }],
+        });
+    }
+    Ok(program_info)
+}

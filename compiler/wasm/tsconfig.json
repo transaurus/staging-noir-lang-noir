@@ -1,0 +1,23 @@
+{
+  "compilerOptions": {
+    "ignoreDeprecations": "6.0",
+    "declaration": true,
+    "declarationDir": "dist/types",
+    "strict": true,
+    "baseUrl": ".",
+    "experimentalDecorators": true,
+    "noImplicitAny": true,
+    "removeComments": false,
+    "preserveConstEnums": true,
+    "sourceMap": true,
+    "importHelpers": true,
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
+    "target": "esnext",
+    "module": "CommonJS",
+    "moduleResolution": "Node",
+    "allowJs": true,
+    "skipLibCheck": true,
+  },
+  "exclude": ["node_modules"]
+}

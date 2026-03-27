@@ -1,0 +1,20 @@
+[package]
+name = "noirc_errors"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[lints]
+workspace = true
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+codespan-reporting.workspace = true
+fm.workspace = true
+rustc-hash.workspace = true
+noirc_span.workspace = true
+serde.workspace = true
+rangemap.workspace = true

@@ -1,0 +1,967 @@
+<!doctype html>
+<html lang="en" dir="ltr" class="docs-wrapper plugin-docs plugin-id-default docs-version-v1.0.0-beta.18 docs-doc-page docs-doc-id-reference/nargo_commands" data-has-hydrated="false">
+<head>
+<meta charset="UTF-8">
+<meta name="generator" content="Docusaurus v3.9.2">
+<title data-rh="true">Nargo | Noir Documentation</title><meta data-rh="true" name="viewport" content="width=device-width,initial-scale=1"><meta data-rh="true" name="twitter:card" content="summary_large_image"><meta data-rh="true" property="og:url" content="https://noir-lang.org/v1.0.0-beta.18/reference/nargo_commands"><meta data-rh="true" property="og:locale" content="en"><meta data-rh="true" name="docusaurus_locale" content="en"><meta data-rh="true" name="docsearch:language" content="en"><meta data-rh="true" name="Noir" content="noir, programming, language, documentation, zk, zero-knowledge, l2, crypto, layer2, ethereum"><meta data-rh="true" name="docusaurus_version" content="v1.0.0-beta.18"><meta data-rh="true" name="docusaurus_tag" content="docs-default-v1.0.0-beta.18"><meta data-rh="true" name="docsearch:version" content="v1.0.0-beta.18"><meta data-rh="true" name="docsearch:docusaurus_tag" content="docs-default-v1.0.0-beta.18"><meta data-rh="true" property="og:title" content="Nargo | Noir Documentation"><meta data-rh="true" name="description" content="Noir CLI Commands for Noir Prover and Verifier to create, execute, prove and verify programs, generate Solidity verifier smart contract and compile into JSON file containing ACIR representation and ABI of circuit."><meta data-rh="true" property="og:description" content="Noir CLI Commands for Noir Prover and Verifier to create, execute, prove and verify programs, generate Solidity verifier smart contract and compile into JSON file containing ACIR representation and ABI of circuit."><meta data-rh="true" name="keywords" content="Nargo,Noir CLI,Noir Prover,Noir Verifier,generate Solidity verifier,compile JSON file,ACIR representation,ABI of circuit,TypeScript"><link data-rh="true" rel="icon" href="/img/favicon.svg"><link data-rh="true" rel="canonical" href="https://noir-lang.org/v1.0.0-beta.18/reference/nargo_commands"><link data-rh="true" rel="alternate" href="https://noir-lang.org/v1.0.0-beta.18/reference/nargo_commands" hreflang="en"><link data-rh="true" rel="alternate" href="https://noir-lang.org/v1.0.0-beta.18/reference/nargo_commands" hreflang="x-default"><link data-rh="true" rel="preconnect" href="https://97APAVUL6H-dsn.algolia.net" crossorigin="anonymous"><script data-rh="true" type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Nargo","item":"https://noir-lang.org/v1.0.0-beta.18/reference/nargo_commands"}]}</script><link rel="search" type="application/opensearchdescription+xml" title="Noir Documentation" href="/opensearch.xml"><link rel="stylesheet" href="/assets/css/styles.de78ea4e.css">
+<script src="/assets/js/runtime~main.23ffd097.js" defer="defer"></script>
+<script src="/assets/js/main.5e75c535.js" defer="defer"></script>
+</head>
+<body class="navigation-with-keyboard">
+<svg style="display: none;"><defs>
+<symbol id="theme-svg-external-link" viewBox="0 0 24 24"><path fill="currentColor" d="M21 13v10h-21v-19h12v2h-10v15h17v-8h2zm3-12h-10.988l4.035 4-6.977 7.07 2.828 2.828 6.977-7.07 4.125 4.172v-11z"/></symbol>
+</defs></svg>
+<script>!function(){var t=function(){try{return new URLSearchParams(window.location.search).get("docusaurus-theme")}catch(t){}}()||function(){try{return window.localStorage.getItem("theme")}catch(t){}}();document.documentElement.setAttribute("data-theme",t||(window.matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light")),document.documentElement.setAttribute("data-theme-choice",t||"system")}(),function(){try{const c=new URLSearchParams(window.location.search).entries();for(var[t,e]of c)if(t.startsWith("docusaurus-data-")){var a=t.replace("docusaurus-data-","data-");document.documentElement.setAttribute(a,e)}}catch(t){}}()</script><div id="__docusaurus"><link rel="preload" as="image" href="/img/logoDark.png"><link rel="preload" as="image" href="/img/logo.png"><div role="region" aria-label="Skip to main content"><a class="skipToContent_fXgn" href="#__docusaurus_skipToContent_fallback">Skip to main content</a></div><nav aria-label="Main" class="theme-layout-navbar navbar navbar--fixed-top"><div class="navbar__inner"><div class="theme-layout-navbar-left navbar__items"><button aria-label="Toggle navigation bar" aria-expanded="false" class="navbar__toggle clean-btn" type="button"><svg width="30" height="30" viewBox="0 0 30 30" aria-hidden="true"><path stroke="currentColor" stroke-linecap="round" stroke-miterlimit="10" stroke-width="2" d="M4 7h22M4 15h22M4 23h22"></path></svg></button><a class="navbar__brand" href="/"><div class="navbar__logo"><img src="/img/logoDark.png" alt="Noir Logo" class="themedComponent_mlkZ themedComponent--light_NVdE"><img src="/img/logo.png" alt="Noir Logo" class="themedComponent_mlkZ themedComponent--dark_xIcU"></div></a><div class="navbar__item dropdown dropdown--hoverable"><a class="navbar__link" aria-haspopup="true" aria-expanded="false" role="button" href="/v1.0.0-beta.18/reference/nargo_commands">v1.0.0-beta.18</a><ul class="dropdown__menu"><li><a class="dropdown__link" href="/dev">dev</a></li><li><a class="dropdown__link" href="/">v1.0.0-beta.19</a></li><li><a aria-current="page" class="dropdown__link dropdown__link--active" href="/v1.0.0-beta.18/reference/nargo_commands">v1.0.0-beta.18</a></li></ul></div></div><div class="theme-layout-navbar-right navbar__items navbar__items--right"><a href="https://github.com/noir-lang/noir/tree/master/docs" target="_blank" rel="noopener noreferrer" class="navbar__item navbar__link">GitHub<svg width="13.5" height="13.5" aria-label="(opens in new tab)" class="iconExternalLink_nPIU"><use href="#theme-svg-external-link"></use></svg></a><a href="https://noir-lang.github.io/noir/docs/acir/circuit/index.html" target="_blank" rel="noopener noreferrer" class="navbar__item navbar__link">ACIR reference<svg width="13.5" height="13.5" aria-label="(opens in new tab)" class="iconExternalLink_nPIU"><use href="#theme-svg-external-link"></use></svg></a><div class="toggle_vylO colorModeToggle_DEke"><button class="clean-btn toggleButton_gllP toggleButtonDisabled_aARS" type="button" disabled="" title="system mode" aria-label="Switch between dark and light mode (currently system mode)"><svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" class="toggleIcon_g3eP lightToggleIcon_pyhR"><path fill="currentColor" d="M12,9c1.65,0,3,1.35,3,3s-1.35,3-3,3s-3-1.35-3-3S10.35,9,12,9 M12,7c-2.76,0-5,2.24-5,5s2.24,5,5,5s5-2.24,5-5 S14.76,7,12,7L12,7z M2,13l2,0c0.55,0,1-0.45,1-1s-0.45-1-1-1l-2,0c-0.55,0-1,0.45-1,1S1.45,13,2,13z M20,13l2,0c0.55,0,1-0.45,1-1 s-0.45-1-1-1l-2,0c-0.55,0-1,0.45-1,1S19.45,13,20,13z M11,2v2c0,0.55,0.45,1,1,1s1-0.45,1-1V2c0-0.55-0.45-1-1-1S11,1.45,11,2z M11,20v2c0,0.55,0.45,1,1,1s1-0.45,1-1v-2c0-0.55-0.45-1-1-1C11.45,19,11,19.45,11,20z M5.99,4.58c-0.39-0.39-1.03-0.39-1.41,0 c-0.39,0.39-0.39,1.03,0,1.41l1.06,1.06c0.39,0.39,1.03,0.39,1.41,0s0.39-1.03,0-1.41L5.99,4.58z M18.36,16.95 c-0.39-0.39-1.03-0.39-1.41,0c-0.39,0.39-0.39,1.03,0,1.41l1.06,1.06c0.39,0.39,1.03,0.39,1.41,0c0.39-0.39,0.39-1.03,0-1.41 L18.36,16.95z M19.42,5.99c0.39-0.39,0.39-1.03,0-1.41c-0.39-0.39-1.03-0.39-1.41,0l-1.06,1.06c-0.39,0.39-0.39,1.03,0,1.41 s1.03,0.39,1.41,0L19.42,5.99z M7.05,18.36c0.39-0.39,0.39-1.03,0-1.41c-0.39-0.39-1.03-0.39-1.41,0l-1.06,1.06 c-0.39,0.39-0.39,1.03,0,1.41s1.03,0.39,1.41,0L7.05,18.36z"></path></svg><svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" class="toggleIcon_g3eP darkToggleIcon_wfgR"><path fill="currentColor" d="M9.37,5.51C9.19,6.15,9.1,6.82,9.1,7.5c0,4.08,3.32,7.4,7.4,7.4c0.68,0,1.35-0.09,1.99-0.27C17.45,17.19,14.93,19,12,19 c-3.86,0-7-3.14-7-7C5,9.07,6.81,6.55,9.37,5.51z M12,3c-4.97,0-9,4.03-9,9s4.03,9,9,9s9-4.03,9-9c0-0.46-0.04-0.92-0.1-1.36 c-0.98,1.37-2.58,2.26-4.4,2.26c-2.98,0-5.4-2.42-5.4-5.4c0-1.81,0.89-3.42,2.26-4.4C12.92,3.04,12.46,3,12,3L12,3z"></path></svg><svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" class="toggleIcon_g3eP systemToggleIcon_QzmC"><path fill="currentColor" d="m12 21c4.971 0 9-4.029 9-9s-4.029-9-9-9-9 4.029-9 9 4.029 9 9 9zm4.95-13.95c1.313 1.313 2.05 3.093 2.05 4.95s-0.738 3.637-2.05 4.95c-1.313 1.313-3.093 2.05-4.95 2.05v-14c1.857 0 3.637 0.737 4.95 2.05z"></path></svg></button></div><div class="navbarSearchContainer_Bca1"><button type="button" class="DocSearch DocSearch-Button" aria-label="Search (Meta+k)" aria-keyshortcuts="Meta+k"><span class="DocSearch-Button-Container"><svg width="20" height="20" class="DocSearch-Search-Icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="8" stroke="currentColor" fill="none" stroke-width="1.4"></circle><path d="m21 21-4.3-4.3" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"></path></svg><span class="DocSearch-Button-Placeholder">Search</span></span><span class="DocSearch-Button-Keys"></span></button></div></div></div><div role="presentation" class="navbar-sidebar__backdrop"></div></nav><div id="__docusaurus_skipToContent_fallback" class="theme-layout-main main-wrapper mainWrapper_z2l0"><div class="docsWrapper_hBAB"><button aria-label="Scroll back to top" class="clean-btn theme-back-to-top-button backToTopButton_sjWU" type="button"></button><div class="docRoot_UBD9"><aside class="theme-doc-sidebar-container docSidebarContainer_YfHR"><div class="sidebarViewport_aRkj"><div class="sidebar_njMd"><nav aria-label="Docs sidebar" class="menu thin-scrollbar menu_SIkG"><ul class="theme-doc-sidebar-menu menu__list"><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-1 menu__list-item"><a class="menu__link" href="/v1.0.0-beta.18"><span title="Noir Lang" class="linkLabel_WmDU">Noir Lang</span></a></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="categoryLink_byQd menu__link menu__link--sublist menu__link--sublist-caret" role="button" aria-expanded="false" href="/v1.0.0-beta.18/getting_started/quick_start"><span title="Getting Started" class="categoryLinkLabel_W154">Getting Started</span></a></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="categoryLink_byQd menu__link menu__link--sublist menu__link--sublist-caret" role="button" aria-expanded="false" href="/v1.0.0-beta.18/noir/concepts/data_types"><span title="The Noir Language" class="categoryLinkLabel_W154">The Noir Language</span></a></div></li><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-1 menuHtmlItem_M9Kj menu__list-item"><div class="divider"></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a href="https://barretenberg.aztec.network/docs/how_to_guides/how-to-solidity-verifier" target="_blank" rel="noopener noreferrer" class="categoryLink_byQd menu__link menu__link--sublist menu__link--sublist-caret" role="button" aria-expanded="false"><span title="How To Guides" class="categoryLinkLabel_W154">How To Guides</span></a></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="categoryLink_byQd menu__link menu__link--sublist menu__link--sublist-caret" role="button" aria-expanded="false" href="/v1.0.0-beta.18/explainers/explainer-writing-noir"><span title="Explainers" class="categoryLinkLabel_W154">Explainers</span></a></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="categoryLink_byQd menu__link menu__link--sublist menu__link--sublist-caret" role="button" aria-expanded="false" href="/v1.0.0-beta.18/tutorials/noirjs_app"><span title="Tutorials" class="categoryLinkLabel_W154">Tutorials</span></a></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item"><div class="menu__list-item-collapsible"><a class="categoryLink_byQd menu__link menu__link--sublist menu__link--sublist-caret menu__link--active" role="button" aria-expanded="true" href="/v1.0.0-beta.18/reference/nargo_commands"><span title="Reference" class="categoryLinkLabel_W154">Reference</span></a></div><ul class="menu__list"><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-2 menu__list-item"><a class="menu__link menu__link--active" aria-current="page" tabindex="0" href="/v1.0.0-beta.18/reference/nargo_commands"><span title="Nargo" class="linkLabel_WmDU">Nargo</span></a></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-2 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="categoryLink_byQd menu__link menu__link--sublist menu__link--sublist-caret" role="button" aria-expanded="false" tabindex="0" href="/v1.0.0-beta.18/reference/debugger/debugger_vscode"><span title="Debugger" class="categoryLinkLabel_W154">Debugger</span></a></div></li><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-2 menu__list-item"><a class="menu__link" tabindex="0" href="/v1.0.0-beta.18/reference/noir_codegen"><span title="Noir Codegen for TypeScript" class="linkLabel_WmDU">Noir Codegen for TypeScript</span></a></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-2 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="categoryLink_byQd menu__link menu__link--sublist menu__link--sublist-caret" role="button" aria-expanded="false" tabindex="0" href="/v1.0.0-beta.18/reference/NoirJS/noir_js"><span title="NoirJS" class="categoryLinkLabel_W154">NoirJS</span></a></div></li></ul></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="categoryLink_byQd menu__link menu__link--sublist menu__link--sublist-caret" role="button" aria-expanded="false" href="/v1.0.0-beta.18/tooling/language_server"><span title="Tooling" class="categoryLinkLabel_W154">Tooling</span></a></div></li><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-1 menuHtmlItem_M9Kj menu__list-item"><div class="divider"></div></li></ul></nav></div></div></aside><main class="docMainContainer_TBSr"><div class="container padding-top--md padding-bottom--lg"><div class="row"><div class="col docItemCol_VOVn"><div class="theme-doc-version-banner alert alert--warning margin-bottom--md" role="alert"><div>This is documentation for <!-- -->Noir Documentation<!-- --> <b>v1.0.0-beta.18</b>, which is no longer actively maintained.</div><div class="margin-top--md">For up-to-date documentation, see the <b><a href="/">latest version</a></b> (<!-- -->v1.0.0-beta.19<!-- -->).</div></div><div class="docItemContainer_Djhp"><article><nav class="theme-doc-breadcrumbs breadcrumbsContainer_Z_bl" aria-label="Breadcrumbs"><ul class="breadcrumbs"><li class="breadcrumbs__item"><a aria-label="Home page" class="breadcrumbs__link" href="/"><svg viewBox="0 0 24 24" class="breadcrumbHomeIcon_YNFT"><path d="M10 19v-5h4v5c0 .55.45 1 1 1h3c.55 0 1-.45 1-1v-7h1.7c.46 0 .68-.57.33-.87L12.67 3.6c-.38-.34-.96-.34-1.34 0l-8.36 7.53c-.34.3-.13.87.33.87H5v7c0 .55.45 1 1 1h3c.55 0 1-.45 1-1z" fill="currentColor"></path></svg></a></li><li class="breadcrumbs__item"><span class="breadcrumbs__link">Reference</span></li><li class="breadcrumbs__item breadcrumbs__item--active"><span class="breadcrumbs__link">Nargo</span></li></ul></nav><span class="theme-doc-version-badge badge badge--secondary">Version: v1.0.0-beta.18</span><div class="tocCollapsible_ETCw theme-doc-toc-mobile tocMobile_ITEo"><button type="button" class="clean-btn tocCollapsibleButton_TO0P">On this page</button></div><div class="theme-doc-markdown markdown"><header><h1>Command-Line Help for <code>nargo</code></h1></header>
+<p>This document contains the help content for the <code>nargo</code> command-line program.</p>
+<p><strong>Command Overview:</strong></p>
+<ul>
+<li class=""><a href="#nargo" class=""><code>nargo</code>↴</a></li>
+<li class=""><a href="#nargo-check" class=""><code>nargo check</code>↴</a></li>
+<li class=""><a href="#nargo-fmt" class=""><code>nargo fmt</code>↴</a></li>
+<li class=""><a href="#nargo-compile" class=""><code>nargo compile</code>↴</a></li>
+<li class=""><a href="#nargo-new" class=""><code>nargo new</code>↴</a></li>
+<li class=""><a href="#nargo-init" class=""><code>nargo init</code>↴</a></li>
+<li class=""><a href="#nargo-execute" class=""><code>nargo execute</code>↴</a></li>
+<li class=""><a href="#nargo-export" class=""><code>nargo export</code>↴</a></li>
+<li class=""><a href="#nargo-debug" class=""><code>nargo debug</code>↴</a></li>
+<li class=""><a href="#nargo-test" class=""><code>nargo test</code>↴</a></li>
+<li class=""><a href="#nargo-fuzz" class=""><code>nargo fuzz</code>↴</a></li>
+<li class=""><a href="#nargo-info" class=""><code>nargo info</code>↴</a></li>
+<li class=""><a href="#nargo-lsp" class=""><code>nargo lsp</code>↴</a></li>
+<li class=""><a href="#nargo-expand" class=""><code>nargo expand</code>↴</a></li>
+<li class=""><a href="#nargo-doc" class=""><code>nargo doc</code>↴</a></li>
+<li class=""><a href="#nargo-generate-completion-script" class=""><code>nargo generate-completion-script</code>↴</a></li>
+</ul>
+<h2 class="anchor anchorTargetStickyNavbar_Vzrq" id="nargo"><code>nargo</code><a href="#nargo" class="hash-link" aria-label="Direct link to nargo" title="Direct link to nargo" translate="no">​</a></h2>
+<p>Noir&#x27;s package manager</p>
+<p><strong>Usage:</strong> <code>nargo &lt;COMMAND&gt;</code></p>
+<h6 class="anchor anchorTargetStickyNavbar_Vzrq" id="subcommands"><strong>Subcommands:</strong><a href="#subcommands" class="hash-link" aria-label="Direct link to subcommands" title="Direct link to subcommands" translate="no">​</a></h6>
+<ul>
+<li class=""><code>check</code> — Check a local package and all of its dependencies for errors</li>
+<li class=""><code>fmt</code> — Format the Noir files in a workspace</li>
+<li class=""><code>compile</code> — Compile the program and its secret execution trace into ACIR format</li>
+<li class=""><code>new</code> — Create a Noir project in a new directory</li>
+<li class=""><code>init</code> — Create a Noir project in the current directory</li>
+<li class=""><code>execute</code> — Executes a circuit to calculate its return value</li>
+<li class=""><code>export</code> — Exports functions marked with #[export] attribute</li>
+<li class=""><code>debug</code> — Executes a circuit in debug mode</li>
+<li class=""><code>test</code> — Run the tests for this program</li>
+<li class=""><code>fuzz</code> — Run the fuzzing harnesses for this program</li>
+<li class=""><code>info</code> — Provides detailed information on each of a program&#x27;s function (represented by a single circuit)</li>
+<li class=""><code>lsp</code> — Starts the Noir LSP server</li>
+<li class=""><code>expand</code> — Show the result of macro expansion</li>
+<li class=""><code>doc</code> — Builds documentation for the specified package or workspace</li>
+<li class=""><code>generate-completion-script</code> — Generates a shell completion script for your favorite shell</li>
+</ul>
+<h6 class="anchor anchorTargetStickyNavbar_Vzrq" id="options"><strong>Options:</strong><a href="#options" class="hash-link" aria-label="Direct link to options" title="Direct link to options" translate="no">​</a></h6>
+<h2 class="anchor anchorTargetStickyNavbar_Vzrq" id="nargo-check"><code>nargo check</code><a href="#nargo-check" class="hash-link" aria-label="Direct link to nargo-check" title="Direct link to nargo-check" translate="no">​</a></h2>
+<p>Check a local package and all of its dependencies for errors</p>
+<p><strong>Usage:</strong> <code>nargo check [OPTIONS]</code></p>
+<h6 class="anchor anchorTargetStickyNavbar_Vzrq" id="options-1"><strong>Options:</strong><a href="#options-1" class="hash-link" aria-label="Direct link to options-1" title="Direct link to options-1" translate="no">​</a></h6>
+<ul>
+<li class="">
+<p><code>--package &lt;PACKAGE&gt;</code> — The name of the package to run the command on. By default run on the first one found moving up along the ancestors of the current directory</p>
+</li>
+<li class="">
+<p><code>--workspace</code> — Run on all packages in the workspace</p>
+<p>Possible values: <code>true</code>, <code>false</code></p>
+</li>
+<li class="">
+<p><code>--overwrite</code> — Force overwrite of existing files</p>
+<p>Possible values: <code>true</code>, <code>false</code></p>
+</li>
+<li class="">
+<p><code>--force</code> — Force a full recompilation</p>
+<p>Possible values: <code>true</code>, <code>false</code></p>
+</li>
+<li class="">
+<p><code>--print-acir</code> — Display the ACIR for compiled circuit, including the Brillig bytecode</p>
+<p>Possible values: <code>true</code>, <code>false</code></p>
+</li>
+<li class="">
+<p><code>--deny-warnings</code> — Treat all warnings as errors</p>
+<p>Possible values: <code>true</code>, <code>false</code></p>
+</li>
+<li class="">
+<p><code>--silence-warnings</code> — Suppress warnings</p>
+<p>Possible values: <code>true</code>, <code>false</code></p>
+</li>
+<li class="">
+<p><code>--debug-comptime-in-file &lt;DEBUG_COMPTIME_IN_FILE&gt;</code> — Enable printing results of comptime evaluation: provide a path suffix for the module to debug, e.g. &quot;package_name/src/main.nr&quot;</p>
+</li>
+<li class="">
+<p><code>--skip-underconstrained-check</code> — Flag to turn off the compiler check for under constrained values. Warning: This can improve compilation speed but can also lead to correctness errors. This check should always be run on production code</p>
+<p>Possible values: <code>true</code>, <code>false</code></p>
+</li>
+<li class="">
+<p><code>--skip-brillig-constraints-check</code> — Flag to turn off the compiler check for missing Brillig call constraints. Warning: This can improve compilation speed but can also lead to correctness errors. This check should always be run on production code</p>
+<p>Possible values: <code>true</code>, <code>false</code></p>
+</li>
+<li class="">
+<p><code>--count-array-copies</code> — Count the number of arrays that are copied in an unconstrained context for performance debugging</p>
+<p>Possible values: <code>true</code>, <code>false</code></p>
+</li>
+<li class="">
+<p><code>--enable-brillig-constraints-check-lookback</code> — Flag to turn on the lookback feature of the Brillig call constraints check, allowing tracking argument values before the call happens preventing certain rare false positives (leads to a slowdown on large rollout functions)</p>
+<p>Possible values: <code>true</code>, <code>false</code></p>
+</li>
+<li class="">
+<p><code>--inliner-aggressiveness &lt;INLINER_AGGRESSIVENESS&gt;</code> — Setting to decide on an inlining strategy for Brillig functions. A more aggressive inliner should generate larger programs but more optimized A less aggressive inliner should generate smaller programs</p>
+<p>Default value: <code>9223372036854775807</code></p>
+</li>
+<li class="">
+<p><code>--pedantic-solving</code> — Use pedantic ACVM solving, i.e. double-check some black-box function assumptions when solving. This is disabled by default</p>
+<p>Default value: <code>false</code></p>
+<p>Possible values: <code>true</code>, <code>false</code></p>
+</li>
+<li class="">
+<p><code>-Z</code>, <code>--unstable-features &lt;UNSTABLE_FEATURES&gt;</code> — Unstable features to enable for this current build.</p>
+</li>
+</ul>
+<p>If non-empty, it disables unstable features required in crate manifests.</p>
+<ul>
+<li class="">
+<p><code>--no-unstable-features</code> — Disable any unstable features required in crate manifests</p>
+<p>Possible values: <code>true</code>, <code>false</code></p>
+</li>
+</ul>
+<h2 class="anchor anchorTargetStickyNavbar_Vzrq" id="nargo-fmt"><code>nargo fmt</code><a href="#nargo-fmt" class="hash-link" aria-label="Direct link to nargo-fmt" title="Direct link to nargo-fmt" translate="no">​</a></h2>
+<p>Format the Noir files in a workspace</p>
+<p><strong>Usage:</strong> <code>nargo fmt [OPTIONS]</code></p>
+<h6 class="anchor anchorTargetStickyNavbar_Vzrq" id="options-2"><strong>Options:</strong><a href="#options-2" class="hash-link" aria-label="Direct link to options-2" title="Direct link to options-2" translate="no">​</a></h6>
+<ul>
+<li class="">
+<p><code>--check</code> — Run noirfmt in check mode</p>
+<p>Possible values: <code>true</code>, <code>false</code></p>
+</li>
+<li class="">
+<p><code>--package &lt;PACKAGE&gt;</code> — The name of the package to run the command on. By default run on the first one found moving up along the ancestors of the current directory</p>
+</li>
+<li class="">
+<p><code>--workspace</code> — Run on all packages in the workspace</p>
+<p>Possible values: <code>true</code>, <code>false</code></p>
+</li>
+</ul>
+<h2 class="anchor anchorTargetStickyNavbar_Vzrq" id="nargo-compile"><code>nargo compile</code><a href="#nargo-compile" class="hash-link" aria-label="Direct link to nargo-compile" title="Direct link to nargo-compile" translate="no">​</a></h2>
+<p>Compile the program and its secret execution trace into ACIR format</p>
+<p><strong>Usage:</strong> <code>nargo compile [OPTIONS]</code></p>
+<h6 class="anchor anchorTargetStickyNavbar_Vzrq" id="options-3"><strong>Options:</strong><a href="#options-3" class="hash-link" aria-label="Direct link to options-3" title="Direct link to options-3" translate="no">​</a></h6>
+<ul>
+<li class="">
+<p><code>--package &lt;PACKAGE&gt;</code> — The name of the package to run the command on. By default run on the first one found moving up along the ancestors of the current directory</p>
+</li>
+<li class="">
+<p><code>--workspace</code> — Run on all packages in the workspace</p>
+<p>Possible values: <code>true</code>, <code>false</code></p>
+</li>
+<li class="">
+<p><code>--force</code> — Force a full recompilation</p>
+<p>Possible values: <code>true</code>, <code>false</code></p>
+</li>
+<li class="">
+<p><code>--print-acir</code> — Display the ACIR for compiled circuit, including the Brillig bytecode</p>
+<p>Possible values: <code>true</code>, <code>false</code></p>
+</li>
+<li class="">
+<p><code>--deny-warnings</code> — Treat all warnings as errors</p>
+<p>Possible values: <code>true</code>, <code>false</code></p>
+</li>
+<li class="">
+<p><code>--silence-warnings</code> — Suppress warnings</p>
+<p>Possible values: <code>true</code>, <code>false</code></p>
+</li>
+<li class="">
+<p><code>--debug-comptime-in-file &lt;DEBUG_COMPTIME_IN_FILE&gt;</code> — Enable printing results of comptime evaluation: provide a path suffix for the module to debug, e.g. &quot;package_name/src/main.nr&quot;</p>
+</li>
+<li class="">
+<p><code>--skip-underconstrained-check</code> — Flag to turn off the compiler check for under constrained values. Warning: This can improve compilation speed but can also lead to correctness errors. This check should always be run on production code</p>
+<p>Possible values: <code>true</code>, <code>false</code></p>
+</li>
+<li class="">
+<p><code>--skip-brillig-constraints-check</code> — Flag to turn off the compiler check for missing Brillig call constraints. Warning: This can improve compilation speed but can also lead to correctness errors. This check should always be run on production code</p>
+<p>Possible values: <code>true</code>, <code>false</code></p>
+</li>
+<li class="">
+<p><code>--count-array-copies</code> — Count the number of arrays that are copied in an unconstrained context for performance debugging</p>
+<p>Possible values: <code>true</code>, <code>false</code></p>
+</li>
+<li class="">
+<p><code>--enable-brillig-constraints-check-lookback</code> — Flag to turn on the lookback feature of the Brillig call constraints check, allowing tracking argument values before the call happens preventing certain rare false positives (leads to a slowdown on large rollout functions)</p>
+<p>Possible values: <code>true</code>, <code>false</code></p>
+</li>
+<li class="">
+<p><code>--inliner-aggressiveness &lt;INLINER_AGGRESSIVENESS&gt;</code> — Setting to decide on an inlining strategy for Brillig functions. A more aggressive inliner should generate larger programs but more optimized A less aggressive inliner should generate smaller programs</p>
+<p>Default value: <code>9223372036854775807</code></p>
+</li>
+<li class="">
+<p><code>--pedantic-solving</code> — Use pedantic ACVM solving, i.e. double-check some black-box function assumptions when solving. This is disabled by default</p>
+<p>Default value: <code>false</code></p>
+<p>Possible values: <code>true</code>, <code>false</code></p>
+</li>
+<li class="">
+<p><code>-Z</code>, <code>--unstable-features &lt;UNSTABLE_FEATURES&gt;</code> — Unstable features to enable for this current build.</p>
+</li>
+</ul>
+<p>If non-empty, it disables unstable features required in crate manifests.</p>
+<ul>
+<li class="">
+<p><code>--no-unstable-features</code> — Disable any unstable features required in crate manifests</p>
+<p>Possible values: <code>true</code>, <code>false</code></p>
+</li>
+</ul>
+<h2 class="anchor anchorTargetStickyNavbar_Vzrq" id="nargo-new"><code>nargo new</code><a href="#nargo-new" class="hash-link" aria-label="Direct link to nargo-new" title="Direct link to nargo-new" translate="no">​</a></h2>
+<p>Create a Noir project in a new directory</p>
+<p><strong>Usage:</strong> <code>nargo new [OPTIONS] &lt;PATH&gt;</code></p>
+<h6 class="anchor anchorTargetStickyNavbar_Vzrq" id="arguments"><strong>Arguments:</strong><a href="#arguments" class="hash-link" aria-label="Direct link to arguments" title="Direct link to arguments" translate="no">​</a></h6>
+<ul>
+<li class=""><code>&lt;PATH&gt;</code> — The path to save the new project</li>
+</ul>
+<h6 class="anchor anchorTargetStickyNavbar_Vzrq" id="options-4"><strong>Options:</strong><a href="#options-4" class="hash-link" aria-label="Direct link to options-4" title="Direct link to options-4" translate="no">​</a></h6>
+<ul>
+<li class="">
+<p><code>--name &lt;NAME&gt;</code> — Name of the package [default: package directory name]</p>
+</li>
+<li class="">
+<p><code>--lib</code> — Use a library template</p>
+<p>Possible values: <code>true</code>, <code>false</code></p>
+</li>
+<li class="">
+<p><code>--bin</code> — Use a binary template [default]</p>
+<p>Possible values: <code>true</code>, <code>false</code></p>
+</li>
+<li class="">
+<p><code>--contract</code> — Use a contract template</p>
+<p>Possible values: <code>true</code>, <code>false</code></p>
+</li>
+</ul>
+<h2 class="anchor anchorTargetStickyNavbar_Vzrq" id="nargo-init"><code>nargo init</code><a href="#nargo-init" class="hash-link" aria-label="Direct link to nargo-init" title="Direct link to nargo-init" translate="no">​</a></h2>
+<p>Create a Noir project in the current directory</p>
+<p><strong>Usage:</strong> <code>nargo init [OPTIONS]</code></p>
+<h6 class="anchor anchorTargetStickyNavbar_Vzrq" id="options-5"><strong>Options:</strong><a href="#options-5" class="hash-link" aria-label="Direct link to options-5" title="Direct link to options-5" translate="no">​</a></h6>
+<ul>
+<li class="">
+<p><code>--name &lt;NAME&gt;</code> — Name of the package [default: current directory name]</p>
+</li>
+<li class="">
+<p><code>--lib</code> — Use a library template</p>
+<p>Possible values: <code>true</code>, <code>false</code></p>
+</li>
+<li class="">
+<p><code>--bin</code> — Use a binary template [default]</p>
+<p>Possible values: <code>true</code>, <code>false</code></p>
+</li>
+<li class="">
+<p><code>--contract</code> — Use a contract template</p>
+<p>Possible values: <code>true</code>, <code>false</code></p>
+</li>
+</ul>
+<h2 class="anchor anchorTargetStickyNavbar_Vzrq" id="nargo-execute"><code>nargo execute</code><a href="#nargo-execute" class="hash-link" aria-label="Direct link to nargo-execute" title="Direct link to nargo-execute" translate="no">​</a></h2>
+<p>Executes a circuit to calculate its return value</p>
+<p><strong>Usage:</strong> <code>nargo execute [OPTIONS] [WITNESS_NAME]</code></p>
+<h6 class="anchor anchorTargetStickyNavbar_Vzrq" id="arguments-1"><strong>Arguments:</strong><a href="#arguments-1" class="hash-link" aria-label="Direct link to arguments-1" title="Direct link to arguments-1" translate="no">​</a></h6>
+<ul>
+<li class=""><code>&lt;WITNESS_NAME&gt;</code> — Write the execution witness to named file</li>
+</ul>
+<p>Defaults to the name of the package being executed.</p>
+<h6 class="anchor anchorTargetStickyNavbar_Vzrq" id="options-6"><strong>Options:</strong><a href="#options-6" class="hash-link" aria-label="Direct link to options-6" title="Direct link to options-6" translate="no">​</a></h6>
+<ul>
+<li class="">
+<p><code>-p</code>, <code>--prover-name &lt;PROVER_NAME&gt;</code> — The name of the toml file which contains the inputs for the prover</p>
+<p>Default value: <code>Prover</code></p>
+</li>
+<li class="">
+<p><code>--package &lt;PACKAGE&gt;</code> — The name of the package to run the command on. By default run on the first one found moving up along the ancestors of the current directory</p>
+</li>
+<li class="">
+<p><code>--workspace</code> — Run on all packages in the workspace</p>
+<p>Possible values: <code>true</code>, <code>false</code></p>
+</li>
+<li class="">
+<p><code>--force</code> — Force a full recompilation</p>
+<p>Possible values: <code>true</code>, <code>false</code></p>
+</li>
+<li class="">
+<p><code>--print-acir</code> — Display the ACIR for compiled circuit, including the Brillig bytecode</p>
+<p>Possible values: <code>true</code>, <code>false</code></p>
+</li>
+<li class="">
+<p><code>--deny-warnings</code> — Treat all warnings as errors</p>
+<p>Possible values: <code>true</code>, <code>false</code></p>
+</li>
+<li class="">
+<p><code>--silence-warnings</code> — Suppress warnings</p>
+<p>Possible values: <code>true</code>, <code>false</code></p>
+</li>
+<li class="">
+<p><code>--debug-comptime-in-file &lt;DEBUG_COMPTIME_IN_FILE&gt;</code> — Enable printing results of comptime evaluation: provide a path suffix for the module to debug, e.g. &quot;package_name/src/main.nr&quot;</p>
+</li>
+<li class="">
+<p><code>--skip-underconstrained-check</code> — Flag to turn off the compiler check for under constrained values. Warning: This can improve compilation speed but can also lead to correctness errors. This check should always be run on production code</p>
+<p>Possible values: <code>true</code>, <code>false</code></p>
+</li>
+<li class="">
+<p><code>--skip-brillig-constraints-check</code> — Flag to turn off the compiler check for missing Brillig call constraints. Warning: This can improve compilation speed but can also lead to correctness errors. This check should always be run on production code</p>
+<p>Possible values: <code>true</code>, <code>false</code></p>
+</li>
+<li class="">
+<p><code>--count-array-copies</code> — Count the number of arrays that are copied in an unconstrained context for performance debugging</p>
+<p>Possible values: <code>true</code>, <code>false</code></p>
+</li>
+<li class="">
+<p><code>--enable-brillig-constraints-check-lookback</code> — Flag to turn on the lookback feature of the Brillig call constraints check, allowing tracking argument values before the call happens preventing certain rare false positives (leads to a slowdown on large rollout functions)</p>
+<p>Possible values: <code>true</code>, <code>false</code></p>
+</li>
+<li class="">
+<p><code>--inliner-aggressiveness &lt;INLINER_AGGRESSIVENESS&gt;</code> — Setting to decide on an inlining strategy for Brillig functions. A more aggressive inliner should generate larger programs but more optimized A less aggressive inliner should generate smaller programs</p>
+<p>Default value: <code>9223372036854775807</code></p>
+</li>
+<li class="">
+<p><code>--pedantic-solving</code> — Use pedantic ACVM solving, i.e. double-check some black-box function assumptions when solving. This is disabled by default</p>
+<p>Default value: <code>false</code></p>
+<p>Possible values: <code>true</code>, <code>false</code></p>
+</li>
+<li class="">
+<p><code>-Z</code>, <code>--unstable-features &lt;UNSTABLE_FEATURES&gt;</code> — Unstable features to enable for this current build.</p>
+</li>
+</ul>
+<p>If non-empty, it disables unstable features required in crate manifests.</p>
+<ul>
+<li class="">
+<p><code>--no-unstable-features</code> — Disable any unstable features required in crate manifests</p>
+<p>Possible values: <code>true</code>, <code>false</code></p>
+</li>
+<li class="">
+<p><code>--oracle-resolver &lt;ORACLE_RESOLVER&gt;</code> — JSON RPC url to solve oracle calls</p>
+</li>
+<li class="">
+<p><code>--oracle-file &lt;ORACLE_FILE&gt;</code> — Path to the oracle transcript</p>
+</li>
+</ul>
+<h2 class="anchor anchorTargetStickyNavbar_Vzrq" id="nargo-export"><code>nargo export</code><a href="#nargo-export" class="hash-link" aria-label="Direct link to nargo-export" title="Direct link to nargo-export" translate="no">​</a></h2>
+<p>Exports functions marked with #[export] attribute</p>
+<p><strong>Usage:</strong> <code>nargo export [OPTIONS]</code></p>
+<h6 class="anchor anchorTargetStickyNavbar_Vzrq" id="options-7"><strong>Options:</strong><a href="#options-7" class="hash-link" aria-label="Direct link to options-7" title="Direct link to options-7" translate="no">​</a></h6>
+<ul>
+<li class="">
+<p><code>--package &lt;PACKAGE&gt;</code> — The name of the package to run the command on. By default run on the first one found moving up along the ancestors of the current directory</p>
+</li>
+<li class="">
+<p><code>--workspace</code> — Run on all packages in the workspace</p>
+<p>Possible values: <code>true</code>, <code>false</code></p>
+</li>
+<li class="">
+<p><code>--force</code> — Force a full recompilation</p>
+<p>Possible values: <code>true</code>, <code>false</code></p>
+</li>
+<li class="">
+<p><code>--print-acir</code> — Display the ACIR for compiled circuit, including the Brillig bytecode</p>
+<p>Possible values: <code>true</code>, <code>false</code></p>
+</li>
+<li class="">
+<p><code>--deny-warnings</code> — Treat all warnings as errors</p>
+<p>Possible values: <code>true</code>, <code>false</code></p>
+</li>
+<li class="">
+<p><code>--silence-warnings</code> — Suppress warnings</p>
+<p>Possible values: <code>true</code>, <code>false</code></p>
+</li>
+<li class="">
+<p><code>--debug-comptime-in-file &lt;DEBUG_COMPTIME_IN_FILE&gt;</code> — Enable printing results of comptime evaluation: provide a path suffix for the module to debug, e.g. &quot;package_name/src/main.nr&quot;</p>
+</li>
+<li class="">
+<p><code>--skip-underconstrained-check</code> — Flag to turn off the compiler check for under constrained values. Warning: This can improve compilation speed but can also lead to correctness errors. This check should always be run on production code</p>
+<p>Possible values: <code>true</code>, <code>false</code></p>
+</li>
+<li class="">
+<p><code>--skip-brillig-constraints-check</code> — Flag to turn off the compiler check for missing Brillig call constraints. Warning: This can improve compilation speed but can also lead to correctness errors. This check should always be run on production code</p>
+<p>Possible values: <code>true</code>, <code>false</code></p>
+</li>
+<li class="">
+<p><code>--count-array-copies</code> — Count the number of arrays that are copied in an unconstrained context for performance debugging</p>
+<p>Possible values: <code>true</code>, <code>false</code></p>
+</li>
+<li class="">
+<p><code>--enable-brillig-constraints-check-lookback</code> — Flag to turn on the lookback feature of the Brillig call constraints check, allowing tracking argument values before the call happens preventing certain rare false positives (leads to a slowdown on large rollout functions)</p>
+<p>Possible values: <code>true</code>, <code>false</code></p>
+</li>
+<li class="">
+<p><code>--inliner-aggressiveness &lt;INLINER_AGGRESSIVENESS&gt;</code> — Setting to decide on an inlining strategy for Brillig functions. A more aggressive inliner should generate larger programs but more optimized A less aggressive inliner should generate smaller programs</p>
+<p>Default value: <code>9223372036854775807</code></p>
+</li>
+<li class="">
+<p><code>--pedantic-solving</code> — Use pedantic ACVM solving, i.e. double-check some black-box function assumptions when solving. This is disabled by default</p>
+<p>Default value: <code>false</code></p>
+<p>Possible values: <code>true</code>, <code>false</code></p>
+</li>
+<li class="">
+<p><code>-Z</code>, <code>--unstable-features &lt;UNSTABLE_FEATURES&gt;</code> — Unstable features to enable for this current build.</p>
+</li>
+</ul>
+<p>If non-empty, it disables unstable features required in crate manifests.</p>
+<ul>
+<li class="">
+<p><code>--no-unstable-features</code> — Disable any unstable features required in crate manifests</p>
+<p>Possible values: <code>true</code>, <code>false</code></p>
+</li>
+</ul>
+<h2 class="anchor anchorTargetStickyNavbar_Vzrq" id="nargo-debug"><code>nargo debug</code><a href="#nargo-debug" class="hash-link" aria-label="Direct link to nargo-debug" title="Direct link to nargo-debug" translate="no">​</a></h2>
+<p>Executes a circuit in debug mode</p>
+<p><strong>Usage:</strong> <code>nargo debug [OPTIONS] [WITNESS_NAME]</code></p>
+<h6 class="anchor anchorTargetStickyNavbar_Vzrq" id="arguments-2"><strong>Arguments:</strong><a href="#arguments-2" class="hash-link" aria-label="Direct link to arguments-2" title="Direct link to arguments-2" translate="no">​</a></h6>
+<ul>
+<li class=""><code>&lt;WITNESS_NAME&gt;</code> — Write the execution witness to named file</li>
+</ul>
+<h6 class="anchor anchorTargetStickyNavbar_Vzrq" id="options-8"><strong>Options:</strong><a href="#options-8" class="hash-link" aria-label="Direct link to options-8" title="Direct link to options-8" translate="no">​</a></h6>
+<ul>
+<li class="">
+<p><code>-p</code>, <code>--prover-name &lt;PROVER_NAME&gt;</code> — The name of the toml file which contains the inputs for the prover</p>
+<p>Default value: <code>Prover</code></p>
+</li>
+<li class="">
+<p><code>--package &lt;PACKAGE&gt;</code> — The name of the package to execute</p>
+</li>
+<li class="">
+<p><code>--force</code> — Force a full recompilation</p>
+<p>Possible values: <code>true</code>, <code>false</code></p>
+</li>
+<li class="">
+<p><code>--print-acir</code> — Display the ACIR for compiled circuit, including the Brillig bytecode</p>
+<p>Possible values: <code>true</code>, <code>false</code></p>
+</li>
+<li class="">
+<p><code>--deny-warnings</code> — Treat all warnings as errors</p>
+<p>Possible values: <code>true</code>, <code>false</code></p>
+</li>
+<li class="">
+<p><code>--silence-warnings</code> — Suppress warnings</p>
+<p>Possible values: <code>true</code>, <code>false</code></p>
+</li>
+<li class="">
+<p><code>--debug-comptime-in-file &lt;DEBUG_COMPTIME_IN_FILE&gt;</code> — Enable printing results of comptime evaluation: provide a path suffix for the module to debug, e.g. &quot;package_name/src/main.nr&quot;</p>
+</li>
+<li class="">
+<p><code>--skip-underconstrained-check</code> — Flag to turn off the compiler check for under constrained values. Warning: This can improve compilation speed but can also lead to correctness errors. This check should always be run on production code</p>
+<p>Possible values: <code>true</code>, <code>false</code></p>
+</li>
+<li class="">
+<p><code>--skip-brillig-constraints-check</code> — Flag to turn off the compiler check for missing Brillig call constraints. Warning: This can improve compilation speed but can also lead to correctness errors. This check should always be run on production code</p>
+<p>Possible values: <code>true</code>, <code>false</code></p>
+</li>
+<li class="">
+<p><code>--count-array-copies</code> — Count the number of arrays that are copied in an unconstrained context for performance debugging</p>
+<p>Possible values: <code>true</code>, <code>false</code></p>
+</li>
+<li class="">
+<p><code>--enable-brillig-constraints-check-lookback</code> — Flag to turn on the lookback feature of the Brillig call constraints check, allowing tracking argument values before the call happens preventing certain rare false positives (leads to a slowdown on large rollout functions)</p>
+<p>Possible values: <code>true</code>, <code>false</code></p>
+</li>
+<li class="">
+<p><code>--inliner-aggressiveness &lt;INLINER_AGGRESSIVENESS&gt;</code> — Setting to decide on an inlining strategy for Brillig functions. A more aggressive inliner should generate larger programs but more optimized A less aggressive inliner should generate smaller programs</p>
+<p>Default value: <code>9223372036854775807</code></p>
+</li>
+<li class="">
+<p><code>--pedantic-solving</code> — Use pedantic ACVM solving, i.e. double-check some black-box function assumptions when solving. This is disabled by default</p>
+<p>Default value: <code>false</code></p>
+<p>Possible values: <code>true</code>, <code>false</code></p>
+</li>
+<li class="">
+<p><code>-Z</code>, <code>--unstable-features &lt;UNSTABLE_FEATURES&gt;</code> — Unstable features to enable for this current build.</p>
+</li>
+</ul>
+<p>If non-empty, it disables unstable features required in crate manifests.</p>
+<ul>
+<li class="">
+<p><code>--no-unstable-features</code> — Disable any unstable features required in crate manifests</p>
+<p>Possible values: <code>true</code>, <code>false</code></p>
+</li>
+<li class="">
+<p><code>--acir-mode</code> — Force ACIR output (disabling instrumentation)</p>
+<p>Possible values: <code>true</code>, <code>false</code></p>
+</li>
+<li class="">
+<p><code>--skip-instrumentation &lt;SKIP_INSTRUMENTATION&gt;</code> — Disable vars debug instrumentation (enabled by default)</p>
+<p>Possible values: <code>true</code>, <code>false</code></p>
+</li>
+<li class="">
+<p><code>--test-name &lt;TEST_NAME&gt;</code> — Name (or substring) of the test function to debug</p>
+</li>
+<li class="">
+<p><code>--oracle-resolver &lt;ORACLE_RESOLVER&gt;</code> — JSON RPC url to solve oracle calls</p>
+</li>
+</ul>
+<h2 class="anchor anchorTargetStickyNavbar_Vzrq" id="nargo-test"><code>nargo test</code><a href="#nargo-test" class="hash-link" aria-label="Direct link to nargo-test" title="Direct link to nargo-test" translate="no">​</a></h2>
+<p>Run the tests for this program</p>
+<p><strong>Usage:</strong> <code>nargo test [OPTIONS] [TEST_NAMES]...</code></p>
+<h6 class="anchor anchorTargetStickyNavbar_Vzrq" id="arguments-3"><strong>Arguments:</strong><a href="#arguments-3" class="hash-link" aria-label="Direct link to arguments-3" title="Direct link to arguments-3" translate="no">​</a></h6>
+<ul>
+<li class=""><code>&lt;TEST_NAMES&gt;</code> — If given, only tests with names containing this string will be run</li>
+</ul>
+<h6 class="anchor anchorTargetStickyNavbar_Vzrq" id="options-9"><strong>Options:</strong><a href="#options-9" class="hash-link" aria-label="Direct link to options-9" title="Direct link to options-9" translate="no">​</a></h6>
+<ul>
+<li class="">
+<p><code>--show-output</code> — Display output of <code>println</code> statements</p>
+<p>Possible values: <code>true</code>, <code>false</code></p>
+</li>
+<li class="">
+<p><code>--exact</code> — Only run tests that match exactly</p>
+<p>Possible values: <code>true</code>, <code>false</code></p>
+</li>
+<li class="">
+<p><code>--list-tests</code> — Print all matching test names, without running them</p>
+<p>Possible values: <code>true</code>, <code>false</code></p>
+</li>
+<li class="">
+<p><code>--no-run</code> — Only compile the tests, without running them</p>
+<p>Possible values: <code>true</code>, <code>false</code></p>
+</li>
+<li class="">
+<p><code>--package &lt;PACKAGE&gt;</code> — The name of the package to run the command on. By default run on the first one found moving up along the ancestors of the current directory</p>
+</li>
+<li class="">
+<p><code>--workspace</code> — Run on all packages in the workspace</p>
+<p>Possible values: <code>true</code>, <code>false</code></p>
+</li>
+<li class="">
+<p><code>--force</code> — Force a full recompilation</p>
+<p>Possible values: <code>true</code>, <code>false</code></p>
+</li>
+<li class="">
+<p><code>--print-acir</code> — Display the ACIR for compiled circuit, including the Brillig bytecode</p>
+<p>Possible values: <code>true</code>, <code>false</code></p>
+</li>
+<li class="">
+<p><code>--deny-warnings</code> — Treat all warnings as errors</p>
+<p>Possible values: <code>true</code>, <code>false</code></p>
+</li>
+<li class="">
+<p><code>--silence-warnings</code> — Suppress warnings</p>
+<p>Possible values: <code>true</code>, <code>false</code></p>
+</li>
+<li class="">
+<p><code>--debug-comptime-in-file &lt;DEBUG_COMPTIME_IN_FILE&gt;</code> — Enable printing results of comptime evaluation: provide a path suffix for the module to debug, e.g. &quot;package_name/src/main.nr&quot;</p>
+</li>
+<li class="">
+<p><code>--skip-underconstrained-check</code> — Flag to turn off the compiler check for under constrained values. Warning: This can improve compilation speed but can also lead to correctness errors. This check should always be run on production code</p>
+<p>Possible values: <code>true</code>, <code>false</code></p>
+</li>
+<li class="">
+<p><code>--skip-brillig-constraints-check</code> — Flag to turn off the compiler check for missing Brillig call constraints. Warning: This can improve compilation speed but can also lead to correctness errors. This check should always be run on production code</p>
+<p>Possible values: <code>true</code>, <code>false</code></p>
+</li>
+<li class="">
+<p><code>--count-array-copies</code> — Count the number of arrays that are copied in an unconstrained context for performance debugging</p>
+<p>Possible values: <code>true</code>, <code>false</code></p>
+</li>
+<li class="">
+<p><code>--enable-brillig-constraints-check-lookback</code> — Flag to turn on the lookback feature of the Brillig call constraints check, allowing tracking argument values before the call happens preventing certain rare false positives (leads to a slowdown on large rollout functions)</p>
+<p>Possible values: <code>true</code>, <code>false</code></p>
+</li>
+<li class="">
+<p><code>--inliner-aggressiveness &lt;INLINER_AGGRESSIVENESS&gt;</code> — Setting to decide on an inlining strategy for Brillig functions. A more aggressive inliner should generate larger programs but more optimized A less aggressive inliner should generate smaller programs</p>
+<p>Default value: <code>9223372036854775807</code></p>
+</li>
+<li class="">
+<p><code>--pedantic-solving</code> — Use pedantic ACVM solving, i.e. double-check some black-box function assumptions when solving. This is disabled by default</p>
+<p>Default value: <code>false</code></p>
+<p>Possible values: <code>true</code>, <code>false</code></p>
+</li>
+<li class="">
+<p><code>-Z</code>, <code>--unstable-features &lt;UNSTABLE_FEATURES&gt;</code> — Unstable features to enable for this current build.</p>
+</li>
+</ul>
+<p>If non-empty, it disables unstable features required in crate manifests.</p>
+<ul>
+<li class="">
+<p><code>--no-unstable-features</code> — Disable any unstable features required in crate manifests</p>
+<p>Possible values: <code>true</code>, <code>false</code></p>
+</li>
+<li class="">
+<p><code>--oracle-resolver &lt;ORACLE_RESOLVER&gt;</code> — JSON RPC url to solve oracle calls</p>
+</li>
+<li class="">
+<p><code>--test-threads &lt;TEST_THREADS&gt;</code> — Number of threads used for running tests in parallel</p>
+<p>Default value: <code>4</code></p>
+</li>
+<li class="">
+<p><code>--format &lt;FORMAT&gt;</code> — Configure formatting of output</p>
+<p>Possible values:</p>
+<ul>
+<li class=""><code>pretty</code>:
+Print verbose output</li>
+<li class=""><code>terse</code>:
+Display one character per test</li>
+<li class=""><code>json</code>:
+Output a JSON Lines document</li>
+</ul>
+</li>
+<li class="">
+<p><code>-q</code>, <code>--quiet</code> — Display one character per test instead of one line</p>
+<p>Possible values: <code>true</code>, <code>false</code></p>
+</li>
+<li class="">
+<p><code>--no-fuzz</code> — Do not run fuzz tests (tests that have arguments)</p>
+<p>Possible values: <code>true</code>, <code>false</code></p>
+</li>
+<li class="">
+<p><code>--only-fuzz</code> — Only run fuzz tests (tests that have arguments)</p>
+<p>Possible values: <code>true</code>, <code>false</code></p>
+</li>
+<li class="">
+<p><code>--corpus-dir &lt;CORPUS_DIR&gt;</code> — If given, load/store fuzzer corpus from this folder</p>
+</li>
+<li class="">
+<p><code>--minimized-corpus-dir &lt;MINIMIZED_CORPUS_DIR&gt;</code> — If given, perform corpus minimization instead of fuzzing and store results in the given folder</p>
+</li>
+<li class="">
+<p><code>--fuzzing-failure-dir &lt;FUZZING_FAILURE_DIR&gt;</code> — If given, store the failing input in the given folder</p>
+</li>
+<li class="">
+<p><code>--fuzz-timeout &lt;FUZZ_TIMEOUT&gt;</code> — Maximum time in seconds to spend fuzzing (default: 1 seconds)</p>
+<p>Default value: <code>1</code></p>
+</li>
+<li class="">
+<p><code>--fuzz-max-executions &lt;FUZZ_MAX_EXECUTIONS&gt;</code> — Maximum number of executions to run for each fuzz test (default: 100000)</p>
+<p>Default value: <code>100000</code></p>
+</li>
+<li class="">
+<p><code>--fuzz-show-progress</code> — Show progress of fuzzing (default: false)</p>
+<p>Possible values: <code>true</code>, <code>false</code></p>
+</li>
+</ul>
+<h2 class="anchor anchorTargetStickyNavbar_Vzrq" id="nargo-fuzz"><code>nargo fuzz</code><a href="#nargo-fuzz" class="hash-link" aria-label="Direct link to nargo-fuzz" title="Direct link to nargo-fuzz" translate="no">​</a></h2>
+<p>Run the fuzzing harnesses for this program</p>
+<p><strong>Usage:</strong> <code>nargo fuzz [OPTIONS] [FUZZING_HARNESS_NAME]</code></p>
+<h6 class="anchor anchorTargetStickyNavbar_Vzrq" id="arguments-4"><strong>Arguments:</strong><a href="#arguments-4" class="hash-link" aria-label="Direct link to arguments-4" title="Direct link to arguments-4" translate="no">​</a></h6>
+<ul>
+<li class=""><code>&lt;FUZZING_HARNESS_NAME&gt;</code> — If given, only the fuzzing harnesses with names containing this string will be run</li>
+</ul>
+<h6 class="anchor anchorTargetStickyNavbar_Vzrq" id="options-10"><strong>Options:</strong><a href="#options-10" class="hash-link" aria-label="Direct link to options-10" title="Direct link to options-10" translate="no">​</a></h6>
+<ul>
+<li class="">
+<p><code>--corpus-dir &lt;CORPUS_DIR&gt;</code> — If given, load/store fuzzer corpus from this folder</p>
+</li>
+<li class="">
+<p><code>--minimized-corpus-dir &lt;MINIMIZED_CORPUS_DIR&gt;</code> — If given, perform corpus minimization instead of fuzzing and store results in the given folder</p>
+</li>
+<li class="">
+<p><code>--fuzzing-failure-dir &lt;FUZZING_FAILURE_DIR&gt;</code> — If given, store the failing input in the given folder</p>
+</li>
+<li class="">
+<p><code>--list-all</code> — List all available harnesses that match the name</p>
+<p>Possible values: <code>true</code>, <code>false</code></p>
+</li>
+<li class="">
+<p><code>--show-output</code> — Display output of <code>println</code> statements</p>
+<p>Possible values: <code>true</code>, <code>false</code></p>
+</li>
+<li class="">
+<p><code>--num-threads &lt;NUM_THREADS&gt;</code> — The number of threads to use for fuzzing</p>
+<p>Default value: <code>1</code></p>
+</li>
+<li class="">
+<p><code>--exact</code> — Only run harnesses that match exactly</p>
+<p>Possible values: <code>true</code>, <code>false</code></p>
+</li>
+<li class="">
+<p><code>--package &lt;PACKAGE&gt;</code> — The name of the package to run the command on. By default run on the first one found moving up along the ancestors of the current directory</p>
+</li>
+<li class="">
+<p><code>--workspace</code> — Run on all packages in the workspace</p>
+<p>Possible values: <code>true</code>, <code>false</code></p>
+</li>
+<li class="">
+<p><code>--force</code> — Force a full recompilation</p>
+<p>Possible values: <code>true</code>, <code>false</code></p>
+</li>
+<li class="">
+<p><code>--print-acir</code> — Display the ACIR for compiled circuit, including the Brillig bytecode</p>
+<p>Possible values: <code>true</code>, <code>false</code></p>
+</li>
+<li class="">
+<p><code>--deny-warnings</code> — Treat all warnings as errors</p>
+<p>Possible values: <code>true</code>, <code>false</code></p>
+</li>
+<li class="">
+<p><code>--silence-warnings</code> — Suppress warnings</p>
+<p>Possible values: <code>true</code>, <code>false</code></p>
+</li>
+<li class="">
+<p><code>--debug-comptime-in-file &lt;DEBUG_COMPTIME_IN_FILE&gt;</code> — Enable printing results of comptime evaluation: provide a path suffix for the module to debug, e.g. &quot;package_name/src/main.nr&quot;</p>
+</li>
+<li class="">
+<p><code>--skip-underconstrained-check</code> — Flag to turn off the compiler check for under constrained values. Warning: This can improve compilation speed but can also lead to correctness errors. This check should always be run on production code</p>
+<p>Possible values: <code>true</code>, <code>false</code></p>
+</li>
+<li class="">
+<p><code>--skip-brillig-constraints-check</code> — Flag to turn off the compiler check for missing Brillig call constraints. Warning: This can improve compilation speed but can also lead to correctness errors. This check should always be run on production code</p>
+<p>Possible values: <code>true</code>, <code>false</code></p>
+</li>
+<li class="">
+<p><code>--count-array-copies</code> — Count the number of arrays that are copied in an unconstrained context for performance debugging</p>
+<p>Possible values: <code>true</code>, <code>false</code></p>
+</li>
+<li class="">
+<p><code>--enable-brillig-constraints-check-lookback</code> — Flag to turn on the lookback feature of the Brillig call constraints check, allowing tracking argument values before the call happens preventing certain rare false positives (leads to a slowdown on large rollout functions)</p>
+<p>Possible values: <code>true</code>, <code>false</code></p>
+</li>
+<li class="">
+<p><code>--inliner-aggressiveness &lt;INLINER_AGGRESSIVENESS&gt;</code> — Setting to decide on an inlining strategy for Brillig functions. A more aggressive inliner should generate larger programs but more optimized A less aggressive inliner should generate smaller programs</p>
+<p>Default value: <code>9223372036854775807</code></p>
+</li>
+<li class="">
+<p><code>--pedantic-solving</code> — Use pedantic ACVM solving, i.e. double-check some black-box function assumptions when solving. This is disabled by default</p>
+<p>Default value: <code>false</code></p>
+<p>Possible values: <code>true</code>, <code>false</code></p>
+</li>
+<li class="">
+<p><code>-Z</code>, <code>--unstable-features &lt;UNSTABLE_FEATURES&gt;</code> — Unstable features to enable for this current build.</p>
+</li>
+</ul>
+<p>If non-empty, it disables unstable features required in crate manifests.</p>
+<ul>
+<li class="">
+<p><code>--no-unstable-features</code> — Disable any unstable features required in crate manifests</p>
+<p>Possible values: <code>true</code>, <code>false</code></p>
+</li>
+<li class="">
+<p><code>--oracle-resolver &lt;ORACLE_RESOLVER&gt;</code> — JSON RPC url to solve oracle calls</p>
+</li>
+<li class="">
+<p><code>--timeout &lt;TIMEOUT&gt;</code> — Maximum time in seconds to spend fuzzing (default: no timeout)</p>
+<p>Default value: <code>0</code></p>
+</li>
+<li class="">
+<p><code>--max-executions &lt;MAX_EXECUTIONS&gt;</code> — Maximum number of executions of ACIR and Brillig per harness (default: no limit)</p>
+<p>Default value: <code>0</code></p>
+</li>
+</ul>
+<h2 class="anchor anchorTargetStickyNavbar_Vzrq" id="nargo-info"><code>nargo info</code><a href="#nargo-info" class="hash-link" aria-label="Direct link to nargo-info" title="Direct link to nargo-info" translate="no">​</a></h2>
+<p>Provides detailed information on each of a program&#x27;s function (represented by a single circuit)</p>
+<p>Current information provided per circuit: 1. The number of ACIR opcodes 2. Counts the final number gates in the circuit used by a backend</p>
+<p><strong>Usage:</strong> <code>nargo info [OPTIONS]</code></p>
+<h6 class="anchor anchorTargetStickyNavbar_Vzrq" id="options-11"><strong>Options:</strong><a href="#options-11" class="hash-link" aria-label="Direct link to options-11" title="Direct link to options-11" translate="no">​</a></h6>
+<ul>
+<li class="">
+<p><code>--package &lt;PACKAGE&gt;</code> — The name of the package to run the command on. By default run on the first one found moving up along the ancestors of the current directory</p>
+</li>
+<li class="">
+<p><code>--workspace</code> — Run on all packages in the workspace</p>
+<p>Possible values: <code>true</code>, <code>false</code></p>
+</li>
+<li class="">
+<p><code>--profile-execution</code></p>
+<p>Possible values: <code>true</code>, <code>false</code></p>
+</li>
+<li class="">
+<p><code>-p</code>, <code>--prover-name &lt;PROVER_NAME&gt;</code> — The name of the toml file which contains the inputs for the prover</p>
+<p>Default value: <code>Prover</code></p>
+</li>
+<li class="">
+<p><code>--force</code> — Force a full recompilation</p>
+<p>Possible values: <code>true</code>, <code>false</code></p>
+</li>
+<li class="">
+<p><code>--print-acir</code> — Display the ACIR for compiled circuit, including the Brillig bytecode</p>
+<p>Possible values: <code>true</code>, <code>false</code></p>
+</li>
+<li class="">
+<p><code>--deny-warnings</code> — Treat all warnings as errors</p>
+<p>Possible values: <code>true</code>, <code>false</code></p>
+</li>
+<li class="">
+<p><code>--silence-warnings</code> — Suppress warnings</p>
+<p>Possible values: <code>true</code>, <code>false</code></p>
+</li>
+<li class="">
+<p><code>--debug-comptime-in-file &lt;DEBUG_COMPTIME_IN_FILE&gt;</code> — Enable printing results of comptime evaluation: provide a path suffix for the module to debug, e.g. &quot;package_name/src/main.nr&quot;</p>
+</li>
+<li class="">
+<p><code>--skip-underconstrained-check</code> — Flag to turn off the compiler check for under constrained values. Warning: This can improve compilation speed but can also lead to correctness errors. This check should always be run on production code</p>
+<p>Possible values: <code>true</code>, <code>false</code></p>
+</li>
+<li class="">
+<p><code>--skip-brillig-constraints-check</code> — Flag to turn off the compiler check for missing Brillig call constraints. Warning: This can improve compilation speed but can also lead to correctness errors. This check should always be run on production code</p>
+<p>Possible values: <code>true</code>, <code>false</code></p>
+</li>
+<li class="">
+<p><code>--count-array-copies</code> — Count the number of arrays that are copied in an unconstrained context for performance debugging</p>
+<p>Possible values: <code>true</code>, <code>false</code></p>
+</li>
+<li class="">
+<p><code>--enable-brillig-constraints-check-lookback</code> — Flag to turn on the lookback feature of the Brillig call constraints check, allowing tracking argument values before the call happens preventing certain rare false positives (leads to a slowdown on large rollout functions)</p>
+<p>Possible values: <code>true</code>, <code>false</code></p>
+</li>
+<li class="">
+<p><code>--inliner-aggressiveness &lt;INLINER_AGGRESSIVENESS&gt;</code> — Setting to decide on an inlining strategy for Brillig functions. A more aggressive inliner should generate larger programs but more optimized A less aggressive inliner should generate smaller programs</p>
+<p>Default value: <code>9223372036854775807</code></p>
+</li>
+<li class="">
+<p><code>--pedantic-solving</code> — Use pedantic ACVM solving, i.e. double-check some black-box function assumptions when solving. This is disabled by default</p>
+<p>Default value: <code>false</code></p>
+<p>Possible values: <code>true</code>, <code>false</code></p>
+</li>
+<li class="">
+<p><code>-Z</code>, <code>--unstable-features &lt;UNSTABLE_FEATURES&gt;</code> — Unstable features to enable for this current build.</p>
+</li>
+</ul>
+<p>If non-empty, it disables unstable features required in crate manifests.</p>
+<ul>
+<li class="">
+<p><code>--no-unstable-features</code> — Disable any unstable features required in crate manifests</p>
+<p>Possible values: <code>true</code>, <code>false</code></p>
+</li>
+</ul>
+<h2 class="anchor anchorTargetStickyNavbar_Vzrq" id="nargo-lsp"><code>nargo lsp</code><a href="#nargo-lsp" class="hash-link" aria-label="Direct link to nargo-lsp" title="Direct link to nargo-lsp" translate="no">​</a></h2>
+<p>Starts the Noir LSP server</p>
+<p>Starts an LSP server which allows IDEs such as VS Code to display diagnostics in Noir source.</p>
+<p>VS Code Noir Language Support: <a href="https://marketplace.visualstudio.com/items?itemName=noir-lang.vscode-noir" target="_blank" rel="noopener noreferrer" class="">https://marketplace.visualstudio.com/items?itemName=noir-lang.vscode-noir</a></p>
+<p><strong>Usage:</strong> <code>nargo lsp</code></p>
+<h2 class="anchor anchorTargetStickyNavbar_Vzrq" id="nargo-expand"><code>nargo expand</code><a href="#nargo-expand" class="hash-link" aria-label="Direct link to nargo-expand" title="Direct link to nargo-expand" translate="no">​</a></h2>
+<p>Show the result of macro expansion</p>
+<p><strong>Usage:</strong> <code>nargo expand [OPTIONS]</code></p>
+<h6 class="anchor anchorTargetStickyNavbar_Vzrq" id="options-12"><strong>Options:</strong><a href="#options-12" class="hash-link" aria-label="Direct link to options-12" title="Direct link to options-12" translate="no">​</a></h6>
+<ul>
+<li class="">
+<p><code>--package &lt;PACKAGE&gt;</code> — The name of the package to run the command on. By default run on the first one found moving up along the ancestors of the current directory</p>
+</li>
+<li class="">
+<p><code>--workspace</code> — Run on all packages in the workspace</p>
+<p>Possible values: <code>true</code>, <code>false</code></p>
+</li>
+<li class="">
+<p><code>--force</code> — Force a full recompilation</p>
+<p>Possible values: <code>true</code>, <code>false</code></p>
+</li>
+<li class="">
+<p><code>--print-acir</code> — Display the ACIR for compiled circuit, including the Brillig bytecode</p>
+<p>Possible values: <code>true</code>, <code>false</code></p>
+</li>
+<li class="">
+<p><code>--deny-warnings</code> — Treat all warnings as errors</p>
+<p>Possible values: <code>true</code>, <code>false</code></p>
+</li>
+<li class="">
+<p><code>--silence-warnings</code> — Suppress warnings</p>
+<p>Possible values: <code>true</code>, <code>false</code></p>
+</li>
+<li class="">
+<p><code>--debug-comptime-in-file &lt;DEBUG_COMPTIME_IN_FILE&gt;</code> — Enable printing results of comptime evaluation: provide a path suffix for the module to debug, e.g. &quot;package_name/src/main.nr&quot;</p>
+</li>
+<li class="">
+<p><code>--skip-underconstrained-check</code> — Flag to turn off the compiler check for under constrained values. Warning: This can improve compilation speed but can also lead to correctness errors. This check should always be run on production code</p>
+<p>Possible values: <code>true</code>, <code>false</code></p>
+</li>
+<li class="">
+<p><code>--skip-brillig-constraints-check</code> — Flag to turn off the compiler check for missing Brillig call constraints. Warning: This can improve compilation speed but can also lead to correctness errors. This check should always be run on production code</p>
+<p>Possible values: <code>true</code>, <code>false</code></p>
+</li>
+<li class="">
+<p><code>--count-array-copies</code> — Count the number of arrays that are copied in an unconstrained context for performance debugging</p>
+<p>Possible values: <code>true</code>, <code>false</code></p>
+</li>
+<li class="">
+<p><code>--enable-brillig-constraints-check-lookback</code> — Flag to turn on the lookback feature of the Brillig call constraints check, allowing tracking argument values before the call happens preventing certain rare false positives (leads to a slowdown on large rollout functions)</p>
+<p>Possible values: <code>true</code>, <code>false</code></p>
+</li>
+<li class="">
+<p><code>--inliner-aggressiveness &lt;INLINER_AGGRESSIVENESS&gt;</code> — Setting to decide on an inlining strategy for Brillig functions. A more aggressive inliner should generate larger programs but more optimized A less aggressive inliner should generate smaller programs</p>
+<p>Default value: <code>9223372036854775807</code></p>
+</li>
+<li class="">
+<p><code>--pedantic-solving</code> — Use pedantic ACVM solving, i.e. double-check some black-box function assumptions when solving. This is disabled by default</p>
+<p>Default value: <code>false</code></p>
+<p>Possible values: <code>true</code>, <code>false</code></p>
+</li>
+<li class="">
+<p><code>-Z</code>, <code>--unstable-features &lt;UNSTABLE_FEATURES&gt;</code> — Unstable features to enable for this current build.</p>
+</li>
+</ul>
+<p>If non-empty, it disables unstable features required in crate manifests.</p>
+<ul>
+<li class="">
+<p><code>--no-unstable-features</code> — Disable any unstable features required in crate manifests</p>
+<p>Possible values: <code>true</code>, <code>false</code></p>
+</li>
+</ul>
+<h2 class="anchor anchorTargetStickyNavbar_Vzrq" id="nargo-doc"><code>nargo doc</code><a href="#nargo-doc" class="hash-link" aria-label="Direct link to nargo-doc" title="Direct link to nargo-doc" translate="no">​</a></h2>
+<p>Builds documentation for the specified package or workspace.</p>
+<p>Note: this command is in development and functionality may change greatly with no warning.</p>
+<p><strong>Usage:</strong> <code>nargo doc [OPTIONS]</code></p>
+<h6 class="anchor anchorTargetStickyNavbar_Vzrq" id="options-13"><strong>Options:</strong><a href="#options-13" class="hash-link" aria-label="Direct link to options-13" title="Direct link to options-13" translate="no">​</a></h6>
+<ul>
+<li class="">
+<p><code>--package &lt;PACKAGE&gt;</code> — The name of the package to run the command on. By default run on the first one found moving up along the ancestors of the current directory</p>
+</li>
+<li class="">
+<p><code>--workspace</code> — Run on all packages in the workspace</p>
+<p>Possible values: <code>true</code>, <code>false</code></p>
+</li>
+<li class="">
+<p><code>--force</code> — Force a full recompilation</p>
+<p>Possible values: <code>true</code>, <code>false</code></p>
+</li>
+<li class="">
+<p><code>--print-acir</code> — Display the ACIR for compiled circuit, including the Brillig bytecode</p>
+<p>Possible values: <code>true</code>, <code>false</code></p>
+</li>
+<li class="">
+<p><code>--deny-warnings</code> — Treat all warnings as errors</p>
+<p>Possible values: <code>true</code>, <code>false</code></p>
+</li>
+<li class="">
+<p><code>--silence-warnings</code> — Suppress warnings</p>
+<p>Possible values: <code>true</code>, <code>false</code></p>
+</li>
+<li class="">
+<p><code>--debug-comptime-in-file &lt;DEBUG_COMPTIME_IN_FILE&gt;</code> — Enable printing results of comptime evaluation: provide a path suffix for the module to debug, e.g. &quot;package_name/src/main.nr&quot;</p>
+</li>
+<li class="">
+<p><code>--skip-underconstrained-check</code> — Flag to turn off the compiler check for under constrained values. Warning: This can improve compilation speed but can also lead to correctness errors. This check should always be run on production code</p>
+<p>Possible values: <code>true</code>, <code>false</code></p>
+</li>
+<li class="">
+<p><code>--skip-brillig-constraints-check</code> — Flag to turn off the compiler check for missing Brillig call constraints. Warning: This can improve compilation speed but can also lead to correctness errors. This check should always be run on production code</p>
+<p>Possible values: <code>true</code>, <code>false</code></p>
+</li>
+<li class="">
+<p><code>--count-array-copies</code> — Count the number of arrays that are copied in an unconstrained context for performance debugging</p>
+<p>Possible values: <code>true</code>, <code>false</code></p>
+</li>
+<li class="">
+<p><code>--enable-brillig-constraints-check-lookback</code> — Flag to turn on the lookback feature of the Brillig call constraints check, allowing tracking argument values before the call happens preventing certain rare false positives (leads to a slowdown on large rollout functions)</p>
+<p>Possible values: <code>true</code>, <code>false</code></p>
+</li>
+<li class="">
+<p><code>--inliner-aggressiveness &lt;INLINER_AGGRESSIVENESS&gt;</code> — Setting to decide on an inlining strategy for Brillig functions. A more aggressive inliner should generate larger programs but more optimized A less aggressive inliner should generate smaller programs</p>
+<p>Default value: <code>9223372036854775807</code></p>
+</li>
+<li class="">
+<p><code>--pedantic-solving</code> — Use pedantic ACVM solving, i.e. double-check some black-box function assumptions when solving. This is disabled by default</p>
+<p>Default value: <code>false</code></p>
+<p>Possible values: <code>true</code>, <code>false</code></p>
+</li>
+<li class="">
+<p><code>-Z</code>, <code>--unstable-features &lt;UNSTABLE_FEATURES&gt;</code> — Unstable features to enable for this current build.</p>
+</li>
+</ul>
+<p>If non-empty, it disables unstable features required in crate manifests.</p>
+<ul>
+<li class="">
+<p><code>--no-unstable-features</code> — Disable any unstable features required in crate manifests</p>
+<p>Possible values: <code>true</code>, <code>false</code></p>
+</li>
+</ul>
+<h2 class="anchor anchorTargetStickyNavbar_Vzrq" id="nargo-generate-completion-script"><code>nargo generate-completion-script</code><a href="#nargo-generate-completion-script" class="hash-link" aria-label="Direct link to nargo-generate-completion-script" title="Direct link to nargo-generate-completion-script" translate="no">​</a></h2>
+<p>Generates a shell completion script for your favorite shell</p>
+<p><strong>Usage:</strong> <code>nargo generate-completion-script &lt;SHELL&gt;</code></p>
+<h6 class="anchor anchorTargetStickyNavbar_Vzrq" id="arguments-5"><strong>Arguments:</strong><a href="#arguments-5" class="hash-link" aria-label="Direct link to arguments-5" title="Direct link to arguments-5" translate="no">​</a></h6>
+<ul>
+<li class=""><code>&lt;SHELL&gt;</code> — The shell to generate completions for. One of: bash, elvish, fish, powershell, zsh</li>
+</ul>
+<hr>
+<p><small><i>
+This document was generated automatically by
+<a href="https://crates.io/crates/clap-markdown" target="_blank" rel="noopener noreferrer" class=""><code>clap-markdown</code></a>.
+</i></small></p></div><footer class="theme-doc-footer docusaurus-mt-lg"><div class="row margin-top--sm theme-doc-footer-edit-meta-row"><div class="col noPrint_WFHX"><a href="https://github.com/noir-lang/noir/edit/master/docs/versioned_docs/version-v1.0.0-beta.18/reference/nargo_commands.md" target="_blank" rel="noopener noreferrer" class="theme-edit-this-page"><svg fill="currentColor" height="20" width="20" viewBox="0 0 40 40" class="iconEdit_Z9Sw" aria-hidden="true"><g><path d="m34.5 11.7l-3 3.1-6.3-6.3 3.1-3q0.5-0.5 1.2-0.5t1.1 0.5l3.9 3.9q0.5 0.4 0.5 1.1t-0.5 1.2z m-29.5 17.1l18.4-18.5 6.3 6.3-18.4 18.4h-6.3v-6.2z"></path></g></svg>Edit this page</a></div><div class="col lastUpdated_JAkA"></div></div></footer></article><nav class="docusaurus-mt-lg pagination-nav" aria-label="Docs pages"><a class="pagination-nav__link pagination-nav__link--prev" href="/v1.0.0-beta.18/tutorials/noirjs_app"><div class="pagination-nav__sublabel">Previous</div><div class="pagination-nav__label">Building a web app with Noir and Barretenberg</div></a><a class="pagination-nav__link pagination-nav__link--next" href="/v1.0.0-beta.18/reference/debugger/debugger_vscode"><div class="pagination-nav__sublabel">Next</div><div class="pagination-nav__label">VS Code Debugger</div></a></nav></div></div><div class="col col--3"><div class="tableOfContents_bqdL thin-scrollbar theme-doc-toc-desktop"><ul class="table-of-contents table-of-contents__left-border"><li><a href="#nargo" class="table-of-contents__link toc-highlight"><code>nargo</code></a></li><li><a href="#nargo-check" class="table-of-contents__link toc-highlight"><code>nargo check</code></a></li><li><a href="#nargo-fmt" class="table-of-contents__link toc-highlight"><code>nargo fmt</code></a></li><li><a href="#nargo-compile" class="table-of-contents__link toc-highlight"><code>nargo compile</code></a></li><li><a href="#nargo-new" class="table-of-contents__link toc-highlight"><code>nargo new</code></a></li><li><a href="#nargo-init" class="table-of-contents__link toc-highlight"><code>nargo init</code></a></li><li><a href="#nargo-execute" class="table-of-contents__link toc-highlight"><code>nargo execute</code></a></li><li><a href="#nargo-export" class="table-of-contents__link toc-highlight"><code>nargo export</code></a></li><li><a href="#nargo-debug" class="table-of-contents__link toc-highlight"><code>nargo debug</code></a></li><li><a href="#nargo-test" class="table-of-contents__link toc-highlight"><code>nargo test</code></a></li><li><a href="#nargo-fuzz" class="table-of-contents__link toc-highlight"><code>nargo fuzz</code></a></li><li><a href="#nargo-info" class="table-of-contents__link toc-highlight"><code>nargo info</code></a></li><li><a href="#nargo-lsp" class="table-of-contents__link toc-highlight"><code>nargo lsp</code></a></li><li><a href="#nargo-expand" class="table-of-contents__link toc-highlight"><code>nargo expand</code></a></li><li><a href="#nargo-doc" class="table-of-contents__link toc-highlight"><code>nargo doc</code></a></li><li><a href="#nargo-generate-completion-script" class="table-of-contents__link toc-highlight"><code>nargo generate-completion-script</code></a></li></ul></div></div></div></div></main></div></div></div><footer class="footer footer--dark"><div class="container"><div class="footerGrid_mogy"><div class="footerLeft_jVYS"><h3 class="footerTitle_O4NO">Stay up to date with Noir</h3><form class="subscriptionForm_ymif"><div class="inputContainer_VJyA"><input type="email" placeholder="Enter email" class="emailInput_sW78" value=""><button type="submit" disabled="" class="submitButton_XWbd"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"></path></svg></button></div></form></div><div class="footerRight_F9xm"><div class="row footer__links"><div class="col footer__col"><div class="footer__title">Community</div><ul class="footer__items clean-list"><li class="footer__item"><a class="footer__link-item" href="https://forum.aztec.network/c/noir/7">Noir Forum<svg width="13.5" height="13.5" aria-hidden="true" viewBox="0 0 24 24" class="iconExternalLink_nPIU"><path fill="currentColor" d="M21 13v10h-21v-19h12v2h-10v15h17v-8h2zm3-12h-10.988l4.035 4-6.977 7.07 2.828 2.828 6.977-7.07 4.125 4.172v-11z"></path></svg></a></li><li class="footer__item"><a class="footer__link-item" href="https://discord.gg/JtqzkdeQ6G">Discord<svg width="13.5" height="13.5" aria-hidden="true" viewBox="0 0 24 24" class="iconExternalLink_nPIU"><path fill="currentColor" d="M21 13v10h-21v-19h12v2h-10v15h17v-8h2zm3-12h-10.988l4.035 4-6.977 7.07 2.828 2.828 6.977-7.07 4.125 4.172v-11z"></path></svg></a></li><li class="footer__item"><a class="footer__link-item" href="https://twitter.com/NoirLang">Twitter<svg width="13.5" height="13.5" aria-hidden="true" viewBox="0 0 24 24" class="iconExternalLink_nPIU"><path fill="currentColor" d="M21 13v10h-21v-19h12v2h-10v15h17v-8h2zm3-12h-10.988l4.035 4-6.977 7.07 2.828 2.828 6.977-7.07 4.125 4.172v-11z"></path></svg></a></li></ul></div><div class="col footer__col"><div class="footer__title">Code</div><ul class="footer__items clean-list"><li class="footer__item"><a class="footer__link-item" href="https://github.com/noir-lang">Noir GitHub<svg width="13.5" height="13.5" aria-hidden="true" viewBox="0 0 24 24" class="iconExternalLink_nPIU"><path fill="currentColor" d="M21 13v10h-21v-19h12v2h-10v15h17v-8h2zm3-12h-10.988l4.035 4-6.977 7.07 2.828 2.828 6.977-7.07 4.125 4.172v-11z"></path></svg></a></li><li class="footer__item"><a class="footer__link-item" href="https://github.com/noir-lang/noir/tree/master/docs">Docs GitHub<svg width="13.5" height="13.5" aria-hidden="true" viewBox="0 0 24 24" class="iconExternalLink_nPIU"><path fill="currentColor" d="M21 13v10h-21v-19h12v2h-10v15h17v-8h2zm3-12h-10.988l4.035 4-6.977 7.07 2.828 2.828 6.977-7.07 4.125 4.172v-11z"></path></svg></a></li></ul></div></div></div></div><div class="footer__bottom text--center"><div class="footer__copyright">Noir will be dual licensed under MIT/Apache (Version 2.0).</div></div></div></footer></div>
+</body>
+</html>

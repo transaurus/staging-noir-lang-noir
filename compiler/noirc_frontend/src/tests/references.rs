@@ -1,0 +1,288 @@
+use crate::{
+    elaborator::UnstableFeature,
+    tests::{
+        assert_no_errors, assert_no_errors_using_features, check_errors,
+        check_errors_using_features, check_monomorphization_error, get_program_using_features,
+    },
+};
+
+#[test]
+fn cannot_mutate_immutable_variable() {
+    let src = r#"
+    fn main() {
+        let array = [1];
+        mutate(&mut array);
+                    ^^^^^ Cannot mutate immutable variable `array`
+    }
+
+    fn mutate(_: &mut [Field; 1]) {}
+    "#;
+    check_errors(src);
+}
+
+#[test]
+fn cannot_mutate_immutable_variable_on_member_access() {
+    let src = r#"
+    struct Foo {
+        x: Field
+    }
+
+    fn main() {
+        let foo = Foo { x: 0 };
+        mutate(&mut foo.x);
+                    ^^^^^ Cannot mutate immutable variable `foo`
+    }
+
+    fn mutate(foo: &mut Field) {
+        *foo = 1;
+    }
+    "#;
+    check_errors(src);
+}
+
+#[test]
+fn mutable_reference_to_field_of_mutable_reference() {
+    let src = r#"
+    struct Foo {
+        x: Field
+    }
+    
+    fn main() {
+        let mut foo = Foo { x: 5 };
+        let ref_foo = &mut foo;
+        let ref_x = &mut ref_foo.x;
+        *ref_x = 10;
+    }
+    "#;
+    assert_no_errors(src);
+}
+
+#[test]
+fn auto_dereferences_array_access() {
+    let src = r#"
+    fn main() {
+        let ref_array = &mut &mut &mut [0, 1, 2];
+        assert(ref_array[2] == 2);
+    }
+    "#;
+    assert_no_errors(src);
+}
+
+#[test]
+fn does_not_crash_when_passing_mutable_undefined_variable() {
+    let src = r#"
+    fn main() {
+        mutate(&mut undefined);
+                    ^^^^^^^^^ cannot find `undefined` in this scope
+                    ~~~~~~~~~ not found in this scope
+    }
+
+    fn mutate(foo: &mut Field) {
+        *foo = 1;
+    }
+    "#;
+    check_errors(src);
+}
+
+#[test]
+fn constrained_reference_to_unconstrained() {
+    let src = r#"
+    fn main(mut x: u32, y: pub u32) {
+        let x_ref = &mut x;
+        if x == 5  {
+            // Safety: test context
+            unsafe {
+                mut_ref_input(x_ref, y);        
+                              ^^^^^ Cannot pass a mutable reference from a constrained runtime to an unconstrained runtime
+            }
+        }
+
+        assert(x == 10);
+    }
+
+    unconstrained fn mut_ref_input(x: &mut u32, y: u32) {
+        *x = y;
+    }
+    "#;
+    check_errors(src);
+}
+
+#[test]
+fn immutable_references_with_ownership_feature() {
+    let src = r#"
+        unconstrained fn main() {
+            let array = [1, 2, 3];
+            borrow(&array);
+        }
+
+        fn borrow(_array: &[Field; 3]) {}
+    "#;
+
+    let (_, _, errors) = get_program_using_features(src, &[UnstableFeature::Ownership]);
+    assert_eq!(errors.len(), 0);
+}
+
+#[test]
+fn immutable_references_without_ownership_feature() {
+    let src = r#"
+        fn main() {
+            let array = [1, 2, 3];
+            borrow(&array);
+                   ^^^^^^ This requires the unstable feature 'ownership' which is not enabled
+                   ~~~~~~ Pass -Zownership to nargo to enable this feature at your own risk.
+        }
+
+        fn borrow(_array: &[Field; 3]) {}
+                          ^^^^^^^^^^^ This requires the unstable feature 'ownership' which is not enabled
+                          ~~~~~~~~~~~ Pass -Zownership to nargo to enable this feature at your own risk.
+    "#;
+    check_errors(src);
+}
+
+#[test]
+fn calling_dereferenced_lambda_output_from_trait_impl() {
+    let src = r#"
+    trait Bar {
+      fn bar(&mut self) -> &mut Self;
+    }
+    
+    impl<T> Bar for T {
+      fn bar(&mut self) -> &mut Self {
+        self
+      }
+    }
+    
+    fn main() {
+      let mut foo = |_x: ()| { true };
+      let mut_ref_foo = &mut foo;
+      assert((*mut_ref_foo.bar())(()))
+    }
+    "#;
+    assert_no_errors(src);
+}
+
+#[test]
+fn calling_mutable_reference_to_lambda_output_from_trait_impl() {
+    let src = r#"
+    trait Bar {
+      fn bar(&mut self) -> &mut Self;
+    }
+    
+    impl<T> Bar for T {
+      fn bar(&mut self) -> &mut Self {
+        self
+      }
+    }
+    
+    fn main() {
+      let mut foo = |_x: ()| { true };
+      let mut_ref_foo = &mut foo;
+      assert(mut_ref_foo.bar()(()))
+             ^^^^^^^^^^^^^^^^^^^^^ Expected a function, but found a(n) &mut fn(()) -> bool
+    }
+    "#;
+    check_errors(src);
+}
+
+#[test]
+fn mutable_reference_behind_generics_returned_from_oracle() {
+    let src = r#"
+    unconstrained fn main() {
+        let y = &mut 10;
+        let add = |x: Field| { *y = *y + x; };
+        let mul = |x: Field| { *y = *y * x; };
+
+        let f = choose_func(add, mul);
+                ^^^^^^^^^^^^^^^^^^^^^ Mutable reference `fn[(&mut Field,)](Field) -> ()` cannot be returned from an oracle function
+
+        f(20);
+    }
+
+    #[oracle(choose_func)]
+    unconstrained fn choose_func<Env>(
+        f: fn[Env](Field) -> (),
+        g: fn[Env](Field) -> (),
+    ) -> fn[Env](Field) -> () {}
+    "#;
+    check_monomorphization_error(src);
+}
+
+#[test]
+fn method_with_immutable_self_reference_does_not_require_mutable_variable() {
+    let src = r#"
+    struct S { inner: Field }
+
+    impl S {
+        fn ping(self: &S) -> Field {
+            self.inner
+        }
+    }
+
+    fn main() {
+        let s = S { inner: 1 };
+        assert(s.ping() == 1);
+    }
+    "#;
+    assert_no_errors_using_features(src, &[UnstableFeature::Ownership]);
+}
+
+#[test]
+fn disallows_mutating_non_mutable_ref_member_access() {
+    let src = r#"
+    fn main() {
+        let s = (0,);
+        let ps = &s;
+        ps.0 = 1;
+        ^^ `ps` is a `&` reference, so it cannot be written to
+    }
+    "#;
+    check_errors_using_features(src, &[UnstableFeature::Ownership]);
+}
+
+#[test]
+fn disallows_mutating_non_mutable_ref_array_index() {
+    let src = r#"
+    fn main() {
+        let s = [0];
+        let ps = &s;
+        ps[0] = 1;
+        ^^ `ps` is a `&` reference, so it cannot be written to
+    }
+    "#;
+    check_errors_using_features(src, &[UnstableFeature::Ownership]);
+}
+
+#[test]
+fn disallows_mutating_non_mutable_nested_reference_in_tuple_1() {
+    let src = r#"
+    fn main() {
+        let x = (&(0,),);
+        x.0.0 = 1;
+        ^^^^^ Cannot assign to `x.0.0`, which is behind a `&` reference
+    }
+    "#;
+    check_errors_using_features(src, &[UnstableFeature::Ownership]);
+}
+
+#[test]
+fn allows_mutating_mutable_reference_inside_non_mutable_reference() {
+    let src = r#"
+    fn main() {
+        let x = &(&mut (0,),);
+        x.0.0 = 1;
+    }
+    "#;
+    check_errors_using_features(src, &[UnstableFeature::Ownership]);
+}
+
+#[test]
+fn disallows_mutating_non_mutable_reference_inside_mutable_reference() {
+    let src = r#"
+    fn main() {
+        let x = &mut (&(0,),);
+        x.0.0 = 1;
+        ^^^^^ Cannot assign to `x.0.0`, which is behind a `&` reference
+    }
+    "#;
+    check_errors_using_features(src, &[UnstableFeature::Ownership]);
+}

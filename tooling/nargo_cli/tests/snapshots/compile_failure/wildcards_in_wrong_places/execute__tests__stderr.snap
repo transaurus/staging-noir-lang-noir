@@ -1,0 +1,145 @@
+---
+source: tooling/nargo_cli/tests/execute.rs
+expression: stderr
+---
+warning: Constraint for `Gen<_>: Trait2` is not needed, another matching impl is already in scope
+   ┌─ src/main.nr:29:13
+   │
+29 │     Gen<_>: Trait2<_>,
+   │             ------ Unnecessary trait constraint in where clause
+   │
+
+error: The placeholder `_` is not allowed in struct field types
+  ┌─ src/main.nr:6:9
+  │
+6 │     x: [_; _],
+  │         -
+  │
+
+error: The placeholder `_` is not allowed in struct field types
+  ┌─ src/main.nr:6:12
+  │
+6 │     x: [_; _],
+  │            -
+  │
+
+error: The placeholder `_` is not allowed in trait constraints
+   ┌─ src/main.nr:29:9
+   │
+29 │     Gen<_>: Trait2<_>,
+   │         -
+   │
+
+error: The placeholder `_` is not allowed in trait bounds
+   ┌─ src/main.nr:29:20
+   │
+29 │     Gen<_>: Trait2<_>,
+   │                    -
+   │
+
+error: The placeholder `_` is not allowed in function parameter types
+  ┌─ src/main.nr:1:16
+  │
+1 │ pub fn foo(_: [_; _]) -> [_; _] {
+  │                -
+  │
+
+error: The placeholder `_` is not allowed in function parameter types
+  ┌─ src/main.nr:1:19
+  │
+1 │ pub fn foo(_: [_; _]) -> [_; _] {
+  │                   -
+  │
+
+error: The placeholder `_` is not allowed in function return types
+  ┌─ src/main.nr:1:27
+  │
+1 │ pub fn foo(_: [_; _]) -> [_; _] {
+  │                           -
+  │
+
+error: The placeholder `_` is not allowed in function return types
+  ┌─ src/main.nr:1:30
+  │
+1 │ pub fn foo(_: [_; _]) -> [_; _] {
+  │                              -
+  │
+
+error: The placeholder `_` is not allowed in trait constraints
+   ┌─ src/main.nr:24:9
+   │
+24 │     Gen<_>: Trait2<T>,
+   │         -
+   │
+
+error: The placeholder `_` is not allowed in function parameter types
+   ┌─ src/main.nr:10:16
+   │
+10 │     fn foo(_: [_; _]) -> [_; _] {
+   │                -
+   │
+
+error: The placeholder `_` is not allowed in function parameter types
+   ┌─ src/main.nr:10:19
+   │
+10 │     fn foo(_: [_; _]) -> [_; _] {
+   │                   -
+   │
+
+error: The placeholder `_` is not allowed in function return types
+   ┌─ src/main.nr:10:27
+   │
+10 │     fn foo(_: [_; _]) -> [_; _] {
+   │                           -
+   │
+
+error: The placeholder `_` is not allowed in function return types
+   ┌─ src/main.nr:10:30
+   │
+10 │     fn foo(_: [_; _]) -> [_; _] {
+   │                              -
+   │
+
+error: The placeholder `_` is not allowed in function parameter types
+   ┌─ src/main.nr:16:25
+   │
+16 │     fn trait_method(_: [_; _]) -> [_; _];
+   │                         -
+   │
+
+error: The placeholder `_` is not allowed in function parameter types
+   ┌─ src/main.nr:16:28
+   │
+16 │     fn trait_method(_: [_; _]) -> [_; _];
+   │                            -
+   │
+
+error: The placeholder `_` is not allowed in function return types
+   ┌─ src/main.nr:16:36
+   │
+16 │     fn trait_method(_: [_; _]) -> [_; _];
+   │                                    -
+   │
+
+error: The placeholder `_` is not allowed in function return types
+   ┌─ src/main.nr:16:39
+   │
+16 │     fn trait_method(_: [_; _]) -> [_; _];
+   │                                       -
+   │
+
+error: The placeholder `_` is not allowed in trait constraints
+   ┌─ src/main.nr:29:9
+   │
+29 │     Gen<_>: Trait2<_>,
+   │         -
+   │
+
+error: The placeholder `_` is not allowed in trait bounds
+   ┌─ src/main.nr:29:20
+   │
+29 │     Gen<_>: Trait2<_>,
+   │                    -
+   │
+
+Aborting due to 19 previous errors

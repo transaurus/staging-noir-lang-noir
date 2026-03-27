@@ -1,0 +1,13 @@
+---
+source: tooling/nargo_cli/tests/execute.rs
+expression: stderr
+---
+error: No matching impl found for `T: MyEq`
+  ┌─ src/main.nr:3:12
+  │
+3 │     assert(a.my_eq(a));
+  │            ------- No impl for `T: MyEq`
+  │
+  = Required by `[[[Field; 2]; 2]; 2]: MyEq`
+
+Aborting due to 1 previous error

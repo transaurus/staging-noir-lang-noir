@@ -1,0 +1,1288 @@
+use noirc_frontend::{parser::block_comment_has_all_leading_stars, token::Token};
+
+use super::Formatter;
+
+#[cfg(windows)]
+const NEWLINE: &str = "\r\n";
+#[cfg(not(windows))]
+const NEWLINE: &str = "\n";
+
+impl Formatter<'_> {
+    /// Writes a single space, skipping any whitespace and comments.
+    /// That is, suppose the next token is a big whitespace, possibly with multiple lines.
+    /// Those are skipped but only one space is written. In this way if we have
+    /// "mod     foo" it's transformed to "mod foo".
+    /// If there are comments in between `mod` and `foo` they are written, though!
+    /// No comment is ever lost.
+    ///
+    /// A space is not appended to the buffer is it already ends with a space.
+    pub(crate) fn write_space(&mut self) {
+        self.skip_comments_and_whitespace();
+        self.write_space_without_skipping_whitespace_and_comments();
+    }
+
+    /// Writes a single space, but doesn't skip whitespace and comments before doing that.
+    ///
+    /// A space is not appended to the buffer is it already ends with a space.
+    pub(crate) fn write_space_without_skipping_whitespace_and_comments(&mut self) {
+        if !self.buffer.ends_with_newline() && !self.buffer.ends_with_space() {
+            self.write(" ");
+        }
+    }
+
+    pub(crate) fn skip_whitespace(&mut self) {
+        while let Token::Whitespace(..) = &self.token {
+            self.bump();
+        }
+    }
+
+    /// Only skips whitespace if it doesn't have newlines in it.
+    /// Note that this doesn't write whitespace or comments at all.
+    pub(crate) fn skip_whitespace_if_it_is_not_a_newline(&mut self) {
+        while let Token::Whitespace(whitespace) = &self.token {
+            if whitespace.contains('\n') {
+                break;
+            }
+            self.bump();
+        }
+    }
+
+    /// Skips comments and whitespace, writing newlines if there are any.
+    /// If there are multiple consecutive newlines, only one is written.
+    pub(crate) fn skip_comments_and_whitespace(&mut self) {
+        self.skip_comments_and_whitespace_impl(
+            false, // write multiple lines
+            false, // at beginning
+        );
+    }
+
+    /// Similar to skip_comments_and_whitespace, but will write two lines if
+    /// multiple newlines are found (but at most two lines at a time).
+    pub(crate) fn skip_comments_and_whitespace_writing_multiple_lines_if_found(&mut self) {
+        self.skip_comments_and_whitespace_impl(
+            true,  // write multiple lines
+            false, // at beginning
+        );
+    }
+
+    pub(crate) fn skip_comments_and_whitespace_impl(
+        &mut self,
+        write_multiple_lines: bool,
+        at_beginning: bool,
+    ) {
+        // Number of newlines we just skipped.
+        let mut number_of_newlines = 0;
+
+        // Did we just passed some whitespace?
+        let mut passed_whitespace = false;
+
+        // Was the last token we processed a block comment?
+        let mut last_was_block_comment = false;
+
+        let mut ignore_next = self.ignore_next;
+
+        loop {
+            match &self.token {
+                Token::Whitespace(whitespace) => {
+                    number_of_newlines = whitespace.chars().filter(|char| *char == '\n').count();
+                    passed_whitespace = whitespace.ends_with(' ');
+
+                    if last_was_block_comment && number_of_newlines > 0 {
+                        if number_of_newlines > 1 {
+                            self.write_multiple_lines_without_skipping_whitespace_and_comments();
+                        } else {
+                            self.write_line_without_skipping_whitespace_and_comments();
+                        }
+
+                        self.bump();
+
+                        // Only indent for what's coming next if it's a comment
+                        // (otherwise a closing brace must come and we wouldn't want to indent that)
+                        if matches!(
+                            &self.token,
+                            Token::LineComment(_, None) | Token::BlockComment(_, None),
+                        ) {
+                            self.write_indentation();
+                        }
+
+                        number_of_newlines = 0;
+                        passed_whitespace = false;
+                    } else {
+                        self.bump();
+                    }
+
+                    last_was_block_comment = false;
+                }
+                Token::LineComment(comment, None) => {
+                    let comment = comment.clone();
+
+                    if comment.trim() == "noir-fmt:ignore" {
+                        ignore_next = true;
+                        self.ignore_next = true;
+                    }
+
+                    // Here we check if we need to write one line, two lines or none after the
+                    // end of the line comment.
+                    if number_of_newlines > 1 && write_multiple_lines {
+                        self.write_multiple_lines_without_skipping_whitespace_and_comments();
+                        self.write_indentation();
+                    } else if number_of_newlines > 0 {
+                        self.write_line_without_skipping_whitespace_and_comments();
+                        self.write_indentation();
+                    } else if !(at_beginning && self.buffer.is_empty()) {
+                        // We write a space before a line comment so if you have code like this:
+                        // "1// comment" it's transformed to "1 // comment".
+                        // What if there was already a space? It's all good, `write_space`
+                        // will never write two consecutive spaces.
+                        self.write_space_without_skipping_whitespace_and_comments();
+                    }
+
+                    self.write_line_comment(&comment, "//");
+                    self.write_line_without_skipping_whitespace_and_comments();
+                    number_of_newlines = 1;
+                    self.bump();
+                    passed_whitespace = false;
+                    last_was_block_comment = false;
+                    self.written_comments_count += 1;
+                }
+                Token::BlockComment(comment, None) => {
+                    let comment = comment.clone();
+
+                    if comment.trim() == "noir-fmt:ignore" {
+                        ignore_next = true;
+                        self.ignore_next = true;
+                    }
+
+                    // Here we check if we need to write one line, two lines or none after the
+                    // end of the block comment.
+                    if number_of_newlines > 1 && write_multiple_lines {
+                        self.write_multiple_lines_without_skipping_whitespace_and_comments();
+                        self.write_indentation();
+                    } else if number_of_newlines > 0 {
+                        self.write_line_without_skipping_whitespace_and_comments();
+                        self.write_indentation();
+                    } else if passed_whitespace {
+                        // We write a space before a line comment so if you have code like this:
+                        // "1/* comment */" it's transformed to "1 /* comment */".
+                        // What if there was already a space? It's all good, `write_space`
+                        // will never write two consecutive spaces.
+                        self.write_space_without_skipping_whitespace_and_comments();
+                    }
+                    self.write_block_comment(&comment, "/*");
+                    self.bump();
+                    passed_whitespace = false;
+                    last_was_block_comment = true;
+                    self.written_comments_count += 1;
+                }
+                _ => break,
+            }
+        }
+
+        // Case when we passed some whitespace with newlines but no comments followed it.
+        if number_of_newlines > 1 && write_multiple_lines {
+            self.write_multiple_lines_without_skipping_whitespace_and_comments();
+        }
+
+        self.ignore_next = ignore_next;
+    }
+
+    pub(crate) fn write_line_comment(&mut self, comment: &str, prefix: &str) {
+        // We don't wrap lines that start with '#' because these might be
+        // markdown headers and wrapping those would actually break them.
+        if self.ignore_next
+            || !self.config.wrap_comments
+            || self.in_chunk
+            || comment.trim_start().starts_with('#')
+            || self.current_line_width() + comment.chars().count() + prefix.len()
+                < self.config.comment_width
+        {
+            self.write(prefix);
+            self.write(comment.trim_end());
+            return;
+        }
+
+        self.write_comment_with_prefix(comment, prefix);
+    }
+
+    pub(crate) fn write_comment_with_prefix(&mut self, comment: &str, prefix: &str) {
+        self.write(prefix);
+        for word in comment.split_inclusive([' ', '\n', '\t']) {
+            if self.current_line_width() + word.trim().chars().count() > self.config.comment_width {
+                self.start_new_line();
+                if !prefix.is_empty() {
+                    self.write(prefix);
+                    self.write(" ");
+                }
+            }
+
+            self.write(word);
+        }
+    }
+
+    pub(crate) fn write_block_comment(&mut self, comment: &str, prefix: &str) {
+        self.write(prefix);
+
+        if self.ignore_next || !self.config.wrap_comments || self.in_chunk {
+            self.write(comment);
+            self.write("*/");
+            return;
+        }
+
+        let all_stars = block_comment_has_all_leading_stars(comment);
+
+        if comment.trim_start_matches([' ', '\t']).starts_with('\n') {
+            self.start_new_line();
+        }
+
+        for (index, line) in comment.lines().enumerate() {
+            if index > 0 {
+                self.start_new_line();
+            }
+
+            for word in line.split_inclusive([' ', '\n', '\t']) {
+                if self.current_line_width() + word.trim().chars().count()
+                    > self.config.comment_width
+                {
+                    self.start_new_line();
+                    if all_stars {
+                        self.write(" * ");
+                    }
+                }
+
+                self.write(word);
+            }
+        }
+
+        if comment.ends_with('\n') {
+            self.start_new_line();
+        }
+
+        if self.current_line_width() + 2 > self.config.comment_width {
+            self.start_new_line();
+        }
+
+        self.write("*/");
+    }
+
+    /// Returns the number of newlines that come next, if we are at a whitespace
+    /// token (otherwise returns 0).
+    pub(crate) fn following_newlines_count(&self) -> usize {
+        let Token::Whitespace(whitespace) = &self.token else {
+            return 0;
+        };
+
+        whitespace.chars().filter(|char| *char == '\n').count()
+    }
+
+    /// Writes a single newline, if the last thing we wrote wasn't also a newline
+    /// (this prevents multiple consecutive newlines, though that's still possible to
+    /// do if you call `write_multiple_lines_...`).
+    ///
+    /// Any whitespace or comments found right at and after the current token are "skipped"
+    /// (whitespace is discarded, comments are written).
+    pub(crate) fn write_line(&mut self) {
+        self.skip_comments_and_whitespace_impl(
+            true,  // writing newline
+            false, // at beginning
+        );
+        self.write_line_without_skipping_whitespace_and_comments();
+    }
+
+    pub(crate) fn write_line_without_skipping_whitespace_and_comments(&mut self) -> bool {
+        if !self.buffer.ends_with_newline() && !self.buffer.ends_with_space() {
+            self.write(NEWLINE);
+            true
+        } else {
+            false
+        }
+    }
+
+    // Modifies the current buffer so that it will always have two newlines at the end.
+    pub(crate) fn write_multiple_lines_without_skipping_whitespace_and_comments(&mut self) {
+        if self.buffer.ends_with_double_newline() {
+            // Nothing
+        } else if self.buffer.ends_with_newline() {
+            self.write(NEWLINE);
+        } else {
+            self.write(NEWLINE);
+            self.write(NEWLINE);
+        }
+    }
+
+    pub(crate) fn start_new_line(&mut self) {
+        self.trim_spaces();
+        self.write_line_without_skipping_whitespace_and_comments();
+        self.write_indentation();
+    }
+
+    /// Trim spaces from the end of the buffer.
+    pub(crate) fn trim_spaces(&mut self) {
+        self.buffer.trim_spaces();
+    }
+
+    /// Trim commas from the end of the buffer. Returns true if a comma was trimmed.
+    pub(crate) fn trim_comma(&mut self) -> bool {
+        self.buffer.trim_comma()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::{
+        Config, assert_format, assert_format_with_config, assert_format_with_max_width,
+        assert_formatter_changes_with_config,
+    };
+    use test_case::test_case;
+
+    fn assert_format_wrapping_comments(src: &str, expected: &str, comment_width: usize) {
+        let config = Config { wrap_comments: true, comment_width, ..Config::default() };
+        assert_format_with_config(src, expected, config);
+    }
+
+    fn assert_formatter_changes_wrapping_comments(src: &str, comment_width: usize) {
+        let config = Config { wrap_comments: true, comment_width, ..Config::default() };
+        assert_formatter_changes_with_config(src, config);
+    }
+
+    #[test]
+    fn format_array_in_global_with_line_comments() {
+        let src = "global x = [ // hello
+        1 , 2 ] ;";
+        let expected = "global x = [
+    // hello
+    1, 2,
+];
+";
+        assert_format(src, expected);
+    }
+
+    #[test]
+    fn format_array_in_global_with_line_comments_2() {
+        let src = "global x = [ // hello
+         [ 1 , 2 ]  ] ;";
+        let expected = "global x = [
+    // hello
+    [1, 2],
+];
+";
+        assert_format(src, expected);
+    }
+
+    #[test]
+    fn format_array_in_global_with_line_comments_3() {
+        let src = "global x =
+    [ 
+        // hello
+        [1, 2],  
+    ];
+";
+        let expected = "global x = [
+    // hello
+    [1, 2],
+];
+";
+        assert_format(src, expected);
+    }
+
+    #[test]
+    fn format_array_in_global_with_line_comments_4() {
+        let src = "global x =
+    [
+        1, // world 
+        2, 3,
+    ];
+";
+        let expected = "global x = [
+    1, // world
+    2, 3,
+];
+";
+        assert_format(src, expected);
+    }
+
+    #[test]
+    fn format_array_in_global_with_block_comments() {
+        let src = "global x = [ /* hello */
+        1 , 2 ] ;";
+        let expected = "global x = [
+    /* hello */ 1,
+    2,
+];
+";
+        assert_format_with_max_width(src, expected, 20);
+    }
+
+    #[test]
+    fn format_if_with_comment_after_condition() {
+        let src = "global x = if  123  // some comment  
+        {   456   }  ;";
+        let expected = "global x = if 123 // some comment
+{
+    456
+};
+";
+        assert_format(src, expected);
+    }
+
+    #[test]
+    fn format_if_with_comment_after_else() {
+        let src = "global x = if  123  {   456   } else  // some comment 
+        { 789 };";
+        let expected = "global x = if 123 {
+    456
+} else // some comment
+{
+    789
+};
+";
+        assert_format(src, expected);
+    }
+
+    #[test]
+    fn format_function_when_some_args_are_multiline_because_of_line_comments() {
+        let src = "fn  foo ( a: i32, // comment
+         b: i32
+         )  { }  ";
+        let expected = "fn foo(
+    a: i32, // comment
+    b: i32,
+) {}
+";
+        assert_format(src, expected);
+    }
+
+    #[test]
+    fn format_function_when_some_args_are_multiline_because_of_line_comments_2() {
+        let src = "fn  foo ( a: i32, // comment
+        // another
+         b: i32 // another comment
+         )  { }  ";
+        let expected = "fn foo(
+    a: i32, // comment
+    // another
+    b: i32, // another comment
+) {}
+";
+        assert_format(src, expected);
+    }
+
+    #[test]
+    fn format_function_when_some_args_are_multiline_because_of_block_comments() {
+        let src = "fn  foo ( a: i32 /*
+        some
+        comment */, b: i32
+         )  { }  ";
+        let expected = "fn foo(
+    a: i32 /*
+        some
+        comment */,
+    b: i32,
+) {}\n";
+        assert_format(src, expected);
+    }
+
+    #[test]
+    fn format_function_with_comment_after_parameters() {
+        let src = "fn main()
+        // hello 
+    {}";
+        let expected = "fn main()
+// hello
+{}
+";
+        assert_format(src, expected);
+    }
+
+    #[test]
+    fn format_function_with_line_comment_in_parameters() {
+        let src = "fn main(
+        // hello
+        )
+    {}";
+        let expected = "fn main(
+    // hello
+) {}
+";
+        assert_format(src, expected);
+    }
+
+    #[test]
+    fn format_function_with_line_comment_on_top_of_parameter() {
+        let src = "fn main(
+// hello
+unit: ()
+) {}";
+        let expected = "fn main(
+    // hello
+    unit: (),
+) {}
+";
+        assert_format(src, expected);
+    }
+
+    #[test]
+    fn format_function_with_block_comment_in_params() {
+        let src = "fn main(/* test */) {}";
+        let expected = "fn main(/* test */) {}\n";
+        assert_format(src, expected);
+    }
+
+    #[test]
+    fn format_function_with_body_and_block_comment() {
+        let src = "fn main() { 
+        /* foo */ 
+        1 }";
+        let expected = "fn main() {
+    /* foo */
+    1
+}
+";
+        assert_format(src, expected);
+    }
+
+    #[test]
+    fn format_function_with_body_one_expr_trailing_comment() {
+        let src = "mod moo { fn main() { 1   // yes
+        } }";
+        let expected = "mod moo {
+    fn main() {
+        1 // yes
+    }
+}
+";
+        assert_format(src, expected);
+    }
+
+    #[test]
+    fn format_function_with_body_one_expr_semicolon_trailing_comment() {
+        let src = "mod moo { fn main() { 1  ; // yes
+        } }";
+        let expected = "mod moo {
+    fn main() {
+        1; // yes
+    }
+}
+";
+        assert_format(src, expected);
+    }
+
+    #[test]
+    fn format_function_with_many_exprs_trailing_comments() {
+        let src = "mod moo { fn main() { 1  ; // yes
+        2 ; // no
+        3 // maybe
+        } }";
+        let expected = "mod moo {
+    fn main() {
+        1; // yes
+        2; // no
+        3 // maybe
+    }
+}
+";
+        assert_format(src, expected);
+    }
+
+    #[test]
+    fn format_function_with_block_comment_after_two_newlines() {
+        let src = "fn foo() {
+    1;
+
+    /* world */
+    2
+}
+";
+        let expected = "fn foo() {
+    1;
+
+    /* world */
+    2
+}
+";
+        assert_format(src, expected);
+    }
+
+    #[test]
+    fn format_comment_on_top_of_let_followed_by_statement() {
+        let src = "fn foo() {
+    1;
+
+    // Comment
+    let x = 1;
+}
+";
+        let expected = "fn foo() {
+    1;
+
+    // Comment
+    let x = 1;
+}
+";
+        assert_format(src, expected);
+    }
+
+    #[test]
+    fn format_module_declaration_with_block_comments() {
+        let src = "  mod/*a*/ foo /*b*/ ; ";
+        let expected = "mod/*a*/ foo /*b*/;\n";
+        assert_format(src, expected);
+    }
+
+    #[test]
+    fn format_module_declaration_with_inline_comments() {
+        let src = "  mod // a  
+ foo // b 
+  ; ";
+        let expected = "mod // a
+foo // b
+;
+";
+        assert_format(src, expected);
+    }
+
+    #[test]
+    fn format_submodule_with_line_comments_in_separate_line() {
+        let src = " #[foo] pub  mod foo { 
+// one
+#[hello]
+mod bar; 
+// two
+}";
+        let expected = "#[foo]
+pub mod foo {
+    // one
+    #[hello]
+    mod bar;
+    // two
+}
+";
+        assert_format(src, expected);
+    }
+
+    #[test]
+    fn format_submodule_with_line_comment_in_same_line() {
+        let src = " #[foo] pub  mod foo {  // one
+mod bar; 
+}";
+        let expected = "#[foo]
+pub mod foo { // one
+    mod bar;
+}
+";
+        assert_format(src, expected);
+    }
+
+    #[test]
+    fn format_submodule_with_block_comment() {
+        let src = " #[foo] pub  mod foo {  /* one */
+/* two */
+mod bar; 
+}";
+        let expected = "#[foo]
+pub mod foo { /* one */
+    /* two */
+    mod bar;
+}
+";
+        assert_format(src, expected);
+    }
+
+    #[test]
+    fn format_submodule_with_block_comment_2() {
+        let src = "mod foo {
+        /* one */
+}";
+        let expected = "mod foo {
+    /* one */
+}
+";
+        assert_format(src, expected);
+    }
+
+    #[test]
+    fn keeps_spaces_between_comments() {
+        let src = "  mod  foo { 
+
+// hello
+
+// world
+
+} ";
+        let expected = "mod foo {
+
+    // hello
+
+    // world
+
+}
+";
+        assert_format(src, expected);
+    }
+
+    #[test]
+    fn comment_with_leading_space() {
+        let src = "    // comment
+        // hello
+mod  foo ; ";
+        let expected = "// comment
+// hello
+mod foo;
+";
+        assert_format(src, expected);
+    }
+
+    #[test]
+    fn format_empty_block_statement_with_inline_block_comment() {
+        let src = " fn foo() { { /* hello */ } } ";
+        let expected = "fn foo() {
+    { /* hello */ }
+}
+";
+        assert_format(src, expected);
+    }
+
+    #[test]
+    fn format_empty_struct_with_block_comments() {
+        let src = " struct Foo {
+        /* hello */
+    }
+        ";
+        let expected = "struct Foo {
+    /* hello */
+}
+";
+        assert_format(src, expected);
+    }
+
+    #[test]
+    fn format_struct_with_just_comments() {
+        let src = " mod foo { struct Foo {
+// hello
+    } }
+        ";
+        let expected = "mod foo {
+    struct Foo {
+        // hello
+    }
+}
+";
+        assert_format(src, expected);
+    }
+
+    #[test]
+    fn format_block_comment_no_whitespace_in_block_single_line() {
+        let src = "global x = {/*foo*/};";
+        let expected = "global x = { /*foo*/ };\n";
+        assert_format(src, expected);
+    }
+
+    #[test]
+    fn format_block_comment_no_whitespace_but_newline_in_block_single_line() {
+        let src = "global x = {/*foo*/
+        };";
+        let expected = "global x = { /*foo*/ };\n";
+        assert_format(src, expected);
+    }
+
+    #[test]
+    fn format_line_comment_in_block_same_line() {
+        let src = "global x = {       // foo
+        };";
+        let expected = "global x = { // foo
+};
+";
+        assert_format(src, expected);
+    }
+
+    #[test]
+    fn format_line_comment_in_block_separate_line() {
+        let src = "global x = {
+        // foo
+        };";
+        let expected = "global x = {
+    // foo
+};
+";
+        assert_format(src, expected);
+    }
+
+    #[test]
+    fn format_block_comment_in_parenthesized_expression() {
+        let src = "global x = ( /* foo */ 1 );";
+        let expected = "global x = ( /* foo */ 1);\n";
+        assert_format(src, expected);
+    }
+
+    #[test]
+    fn format_line_comment_in_parenthesized() {
+        let src = "global x = ( // hello 
+        1 );";
+        let expected = "global x = (
+    // hello
+    1
+);\n";
+        assert_format(src, expected);
+    }
+
+    #[test]
+    fn format_index_with_comment() {
+        let src = "global x = foo[// hello
+        1];";
+        let expected = "global x = foo[
+    // hello
+    1
+];\n";
+        assert_format(src, expected);
+    }
+
+    #[test]
+    fn format_comment_in_infix_between_lhs_and_operator() {
+        let src = "global x = 1/* comment */+ 2 ;";
+        let expected = "global x = 1 /* comment */ + 2;\n";
+        assert_format(src, expected);
+    }
+
+    #[test]
+    fn format_comment_in_constructor_inside_function() {
+        let src = "fn foo() { MyStruct {/*test*/}; } ";
+        let expected = "fn foo() {
+    MyStruct { /*test*/ };
+}
+";
+        assert_format(src, expected);
+    }
+
+    #[test]
+    fn format_block_comment_before_constructor_field() {
+        let src = "global x = Foo {/*comment*/field}; ";
+        let expected = "global x = Foo { /*comment*/ field };\n";
+        assert_format(src, expected);
+    }
+
+    #[test]
+    fn format_line_comment_before_constructor_field() {
+        let src = "global x = Foo { // foo
+        field}; ";
+        let expected = "global x = Foo {
+    // foo
+    field,
+};\n";
+        assert_format(src, expected);
+    }
+
+    #[test]
+    fn format_comment_in_empty_constructor() {
+        let src = "global x = Foo { // comment
+        }; ";
+        let expected = "global x = Foo { // comment
+};\n";
+        assert_format(src, expected);
+    }
+
+    #[test]
+    fn format_comment_after_parenthesized() {
+        let src = "global x = (
+            1
+            // hello
+        )
+        ; ";
+        let expected = "global x = (
+    1
+    // hello
+);\n";
+        assert_format(src, expected);
+    }
+
+    #[test]
+    fn format_comment_in_single_element_tuple() {
+        let src = "global x = ( 1 /* hello */ , );";
+        let expected = "global x = (1 /* hello */,);\n";
+        assert_format(src, expected);
+    }
+
+    #[test]
+    fn format_comment_after_impl_function() {
+        let src = "impl Foo { fn foo() {} 
+        // bar 
+        }";
+        let expected = "impl Foo {
+    fn foo() {}
+    // bar
+}
+";
+        assert_format(src, expected);
+    }
+
+    #[test]
+    fn format_comment_after_trait_impl_function() {
+        let src = "impl Foo for Bar { fn foo() {} 
+        // bar 
+        }";
+        let expected = "impl Foo for Bar {
+    fn foo() {}
+    // bar
+}
+";
+        assert_format(src, expected);
+    }
+
+    #[test]
+    fn format_comment_after_trait_function() {
+        let src = "trait Foo { fn foo() {} 
+        // bar 
+        }";
+        let expected = "trait Foo {
+    fn foo() {}
+    // bar
+}
+";
+        assert_format(src, expected);
+    }
+
+    #[test]
+    fn keeps_newlines_after_comment_at_the_beginning() {
+        let src = "// foo
+
+global x = 1;
+";
+        let expected = src;
+        assert_format(src, expected);
+    }
+
+    #[test]
+    fn keeps_newlines_after_comment_at_the_beginning_2() {
+        let src = "
+        
+        // foo
+
+global x = 1;
+";
+        let expected = "// foo
+
+global x = 1;
+";
+        assert_format(src, expected);
+    }
+
+    #[test]
+    fn wraps_line_comments() {
+        let src = "
+        // This is a long comment that's going to be wrapped.
+        global x: Field = 1;
+        ";
+        let expected = "// This is a long comment
+// that's going to be
+// wrapped.
+global x: Field = 1;
+";
+        assert_format_wrapping_comments(src, expected, 29);
+    }
+
+    #[test]
+    fn wraps_line_comments_with_indentation() {
+        let src = "
+        mod moo {
+            // This is a long comment that's going to be wrapped.
+            global x: Field = 1;
+        }
+        ";
+        let expected = "mod moo {
+    // This is a long comment
+    // that's going to be
+    // wrapped.
+    global x: Field = 1;
+}
+";
+        assert_format_wrapping_comments(src, expected, 29);
+    }
+
+    #[test]
+    fn does_not_wrap_line_comment_if_it_starts_with_pound() {
+        let src = "
+        // # This is a long comment that's not going to be wrapped.
+        global x: Field = 1;
+        ";
+        let expected = "// # This is a long comment that's not going to be wrapped.
+global x: Field = 1;
+";
+        assert_format_wrapping_comments(src, expected, 29);
+    }
+
+    #[test]
+    fn wraps_line_comments_in_statement() {
+        let src = "fn foo() {
+        // This is a long comment that's going to be wrapped.
+        let x = 1;
+    }
+        ";
+        let expected = "fn foo() {
+    // This is a long comment
+    // that's going to be
+    // wrapped.
+    let x = 1;
+}
+";
+        assert_format_wrapping_comments(src, expected, 29);
+    }
+
+    #[test]
+    fn wraps_line_comments_in_statement_trailing_position() {
+        let src = "fn foo() {
+        let x = 1; // This is a long comment that's going to be wrapped.
+    }
+        ";
+        let expected = "fn foo() {
+    let x = 1; // This is a
+    // long comment that's
+    // going to be wrapped.
+}
+";
+        assert_format_wrapping_comments(src, expected, 29);
+    }
+
+    #[test]
+    fn wraps_line_comments_in_argument_trailing_position() {
+        let src = "fn foo() {
+        bar(
+        1, // This is a long comment that's going to be wrapped.
+    )}
+        ";
+        let expected = "fn foo() {
+    bar(
+        1, // This is a long
+        // comment that's
+        // going to be
+        // wrapped.
+    )
+}
+";
+        assert_format_wrapping_comments(src, expected, 29);
+    }
+
+    #[test]
+    fn wraps_block_comments_without_newlines_1() {
+        let src = "
+/* This is a long comment that's going to be wrapped. */
+global x: Field = 1;
+        ";
+        let expected = "/* This is a long comment
+ * that's going to be
+ * wrapped. */
+global x: Field = 1;
+";
+        assert_format_wrapping_comments(src, expected, 29);
+    }
+
+    #[test]
+    fn wraps_block_comments_without_newlines_2() {
+        let src = "
+/* This is a long comment that's wrapped. */
+global x: Field = 1;
+        ";
+        let expected = "/* This is a long comment
+ * that's wrapped. */
+global x: Field = 1;
+";
+        assert_format_wrapping_comments(src, expected, 29);
+    }
+
+    #[test]
+    fn wraps_block_comments_without_newlines_3() {
+        let src = "
+/* This is a long comment that will be wrapped. */
+global x: Field = 1;
+        ";
+        let expected = "/* This is a long comment
+ * that will be wrapped. */
+global x: Field = 1;
+";
+        assert_format_wrapping_comments(src, expected, 29);
+    }
+
+    #[test]
+    fn wraps_block_comments_with_newlines() {
+        let src = "
+/*  
+This is a long comment that's going to be wrapped.
+*/
+global x: Field = 1;
+        ";
+        let expected = "/*
+This is a long comment that's
+going to be wrapped.
+*/
+global x: Field = 1;
+";
+        assert_format_wrapping_comments(src, expected, 29);
+    }
+
+    #[test]
+    fn wraps_block_comments_multiple_lines() {
+        let src = "
+/*  
+This is a long comment that's wrapped.
+This is a long comment that's wrapped.
+*/
+global x: Field = 1;
+        ";
+        let expected = "/*
+This is a long comment that's
+wrapped.
+This is a long comment that's
+wrapped.
+*/
+global x: Field = 1;
+";
+        assert_format_wrapping_comments(src, expected, 29);
+    }
+
+    #[test]
+    fn wraps_block_comments_multiple_lines_with_all_stars() {
+        let src = "
+/*  
+ * This is a long comment that's wrapped.
+ * This is a long comment that's wrapped.
+ */
+global x: Field = 1;
+        ";
+        let expected = "/*
+ * This is a long comment
+ * that's wrapped.
+ * This is a long comment
+ * that's wrapped.
+ */
+global x: Field = 1;
+";
+        assert_format_wrapping_comments(src, expected, 29);
+    }
+
+    #[test]
+    fn wraps_block_comments_in_statement() {
+        let src = "fn foo() {
+        /* This is a long comment that's going to be wrapped. */
+        let x = 1;
+    }
+        ";
+        let expected = "fn foo() {
+    /* This is a long comment
+    that's going to be
+    wrapped. */
+    let x = 1;
+}
+";
+        assert_format_wrapping_comments(src, expected, 29);
+    }
+
+    #[test]
+    fn wraps_mixed_comments_in_statement() {
+        let src = "fn foo() {
+        /* 
+        This is a long comment that's going to be wrapped. 
+        This is a long comment that's going to be wrapped. 
+        */
+        // This is a long comment that's going to be wrapped.
+        /* This is a long comment that's going to be wrapped. */
+        let x = 1;
+    }
+        ";
+        let expected = "fn foo() {
+    /* This is a long comment
+    that's going to be
+    wrapped.
+    This is a long comment
+    that's going to be
+    wrapped.
+    */
+    // This is a long comment
+    // that's going to be
+    // wrapped.
+    /* This is a long comment
+    that's going to be
+    wrapped. */
+    let x = 1;
+}
+";
+        assert_format_wrapping_comments(src, expected, 29);
+    }
+
+    #[test]
+    fn wraps_line_comments_at_block_end() {
+        let src = "fn foo() {
+        let x = 1;
+        // This is a very long comment
+    }
+        ";
+        let expected = "fn foo() {
+    let x = 1;
+    // This is a very long
+    // comment
+}
+";
+        assert_format_wrapping_comments(src, expected, 29);
+    }
+
+    #[test]
+    fn does_not_wrap_line_comment_when_at_max() {
+        let src = "// One two three
+fn foo() {}
+";
+        assert_format_wrapping_comments(src, src, 16);
+    }
+
+    #[test]
+    fn trims_newlines_from_the_end_of_the_file() {
+        let src = "global x: Field = 1;\n\n\n";
+        let expected = "global x: Field = 1;\n";
+        assert_format(src, expected);
+    }
+
+    #[test]
+    fn block_comment_trailing_spaces_bug() {
+        // Note: there are three trailing spaces after "one"
+        let src = "fn foo() {
+    /*
+    * one   
+    * two
+    */
+}
+";
+        // Here the trailing spaces are gone
+        let expected = "fn foo() {
+    /*
+    * one
+    * two
+    */
+}
+";
+        assert_format(src, expected);
+    }
+
+    #[test_case("//", "" ; "line comment")]
+    #[test_case("/*", " */" ; "block comment")]
+    #[test_case("///", "" ; "outer doc line comment")]
+    #[test_case("/**", " */" ; "outer doc block comment")]
+    fn does_not_wrap_outer_comment_if_directed_to_ignore(prefix: &str, suffix: &str) {
+        let comment = format!(
+            r#"{prefix} This is a long comment that's going to be wrapped.{suffix}
+{prefix} This is a long comment that's going to be wrapped.{suffix}
+global x: Field = 1;
+"#
+        );
+        assert_formatter_changes_wrapping_comments(&comment, 29);
+        let ignored_comment = format!("// noir-fmt:ignore\n{comment}");
+        assert_format_wrapping_comments(&ignored_comment, &ignored_comment, 29);
+    }
+
+    #[test_case("//!", "" ; "inner doc line comment")]
+    #[test_case("/*!", " */" ; "inner doc block comment")]
+    fn does_not_wrap_inner_comment_if_directed_to_ignore(prefix: &str, suffix: &str) {
+        let comment = format!(
+            r#"{prefix} This is a long comment that's going to be wrapped.{suffix}
+{prefix} This is a long comment that's going to be wrapped.{suffix}
+"#
+        );
+        assert_formatter_changes_wrapping_comments(&comment, 29);
+        let ignored_comment = format!("// noir-fmt:ignore\n{comment}");
+        assert_format_wrapping_comments(&ignored_comment, &ignored_comment, 29);
+    }
+}

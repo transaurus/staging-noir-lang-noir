@@ -1,0 +1,9 @@
+{
+    "require": "tsx",
+    "extensions": [
+      "ts"
+    ],
+    "spec": [
+      "./test/**/!(browser)/*.test.ts"
+    ]
+  }
