@@ -1,0 +1,86 @@
+{
+  "version.label": {
+    "message": "dev",
+    "description": "The label for version current"
+  },
+  "sidebar.sidebar.category.Getting Started": {
+    "message": "Getting Started",
+    "description": "The label for category 'Getting Started' in sidebar 'sidebar'"
+  },
+  "sidebar.sidebar.category.The Noir Language": {
+    "message": "The Noir Language",
+    "description": "The label for category 'The Noir Language' in sidebar 'sidebar'"
+  },
+  "sidebar.sidebar.category.Concepts": {
+    "message": "Concepts",
+    "description": "The label for category 'Concepts' in sidebar 'sidebar'"
+  },
+  "sidebar.sidebar.category.Data Types": {
+    "message": "Data Types",
+    "description": "The label for category 'Data Types' in sidebar 'sidebar'"
+  },
+  "sidebar.sidebar.category.Standard Library": {
+    "message": "Standard Library",
+    "description": "The label for category 'Standard Library' in sidebar 'sidebar'"
+  },
+  "sidebar.sidebar.category.Cryptographic Primitives": {
+    "message": "Cryptographic Primitives",
+    "description": "The label for category 'Cryptographic Primitives' in sidebar 'sidebar'"
+  },
+  "sidebar.sidebar.category.Containers": {
+    "message": "Containers",
+    "description": "The label for category 'Containers' in sidebar 'sidebar'"
+  },
+  "sidebar.sidebar.category.Metaprogramming": {
+    "message": "Metaprogramming",
+    "description": "The label for category 'Metaprogramming' in sidebar 'sidebar'"
+  },
+  "sidebar.sidebar.category.Modules, Packages and Crates": {
+    "message": "Modules, Packages and Crates",
+    "description": "The label for category 'Modules, Packages and Crates' in sidebar 'sidebar'"
+  },
+  "sidebar.sidebar.category.How To Guides": {
+    "message": "How To Guides",
+    "description": "The label for category 'How To Guides' in sidebar 'sidebar'"
+  },
+  "sidebar.sidebar.category.how-to-debugger": {
+    "message": "Debugging",
+    "description": "The label for category 'Debugging' in sidebar 'sidebar'"
+  },
+  "sidebar.sidebar.category.Explainers": {
+    "message": "Explainers",
+    "description": "The label for category 'Explainers' in sidebar 'sidebar'"
+  },
+  "sidebar.sidebar.category.Tutorials": {
+    "message": "Tutorials",
+    "description": "The label for category 'Tutorials' in sidebar 'sidebar'"
+  },
+  "sidebar.sidebar.category.Reference": {
+    "message": "Reference",
+    "description": "The label for category 'Reference' in sidebar 'sidebar'"
+  },
+  "sidebar.sidebar.category.reference-debugger": {
+    "message": "Debugger",
+    "description": "The label for category 'Debugger' in sidebar 'sidebar'"
+  },
+  "sidebar.sidebar.category.Tooling": {
+    "message": "Tooling",
+    "description": "The label for category 'Tooling' in sidebar 'sidebar'"
+  },
+  "sidebar.sidebar.link.External Libraries": {
+    "message": "External Libraries",
+    "description": "The label for link 'External Libraries' in sidebar 'sidebar', linking to 'https://github.com/noir-lang/awesome-noir?tab=readme-ov-file#libraries'"
+  },
+  "sidebar.sidebar.link.Generate a Solidity Verifier": {
+    "message": "Generate a Solidity Verifier",
+    "description": "The label for link 'Generate a Solidity Verifier' in sidebar 'sidebar', linking to 'https://barretenberg.aztec.network/docs/how_to_guides/how-to-solidity-verifier'"
+  },
+  "sidebar.sidebar.link.Recursive Aggregation": {
+    "message": "Recursive Aggregation",
+    "description": "The label for link 'Recursive Aggregation' in sidebar 'sidebar', linking to 'https://barretenberg.aztec.network/docs/how_to_guides/recursive_aggregation'"
+  },
+  "sidebar.sidebar.link.Noir and Barretenberg on the Browser": {
+    "message": "Noir and Barretenberg on the Browser",
+    "description": "The label for link 'Noir and Barretenberg on the Browser' in sidebar 'sidebar', linking to 'https://barretenberg.aztec.network/docs/how_to_guides/on-the-browser'"
+  }
+}

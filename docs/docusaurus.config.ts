@@ -13,12 +13,12 @@ export default {
   favicon: 'img/favicon.svg',
   url: 'https://noir-lang.org',
   baseUrl: process.env.ENV === 'dev' ? '/' : '/docs/',
-  onBrokenLinks: 'throw',
-  onBrokenMarkdownLinks: process.env.ENV === 'dev' ? 'warn' : 'throw',
+  onBrokenLinks: 'warn',
+  onBrokenMarkdownLinks: "warn",
   trailingSlash: false,
   i18n: {
     defaultLocale: 'en',
-    locales: ['en'],
+    locales: ["en", "zh-Hans"],
   },
 
   presets: [

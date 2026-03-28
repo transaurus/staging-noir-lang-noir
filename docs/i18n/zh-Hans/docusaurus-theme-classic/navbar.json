@@ -1,0 +1,14 @@
+{
+  "logo.alt": {
+    "message": "Noir Logo",
+    "description": "The alt text of navbar logo"
+  },
+  "item.label.GitHub": {
+    "message": "GitHub",
+    "description": "Navbar item with label GitHub"
+  },
+  "item.label.ACIR reference": {
+    "message": "ACIR reference",
+    "description": "Navbar item with label ACIR reference"
+  }
+}
