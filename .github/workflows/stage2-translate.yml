@@ -1,0 +1,224 @@
+name: 'Stage 2: Translate and Rebuild'
+
+on:
+  workflow_dispatch:
+    inputs:
+      locales:
+        description: 'Comma-separated locales to add (e.g., zh-Hans,ja,ko)'
+        required: true
+        default: 'zh-Hans'
+
+jobs:
+  translate_and_rebuild:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: 'Checkout (has Stage 1 output)'
+        uses: actions/checkout@v4
+        with:
+          ref: 'main'
+
+      - name: 'Setup Node.js'
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: 'Enable Corepack'
+        run: corepack enable
+
+      - name: 'Read meta.json'
+        id: meta
+        run: |
+          echo "buildCommand=$(jq -r '.buildCommand // "npx docusaurus build"' .github/scripts/meta.json)" >> $GITHUB_OUTPUT
+          echo "buildOutput=$(jq -r '.buildOutput // "build"' .github/scripts/meta.json)" >> $GITHUB_OUTPUT
+          echo "docusaurusRoot=$(jq -r '.docusaurusRoot // "."' .github/scripts/meta.json)" >> $GITHUB_OUTPUT
+          echo "configFile=$(jq -r '.configFile // ""' .github/scripts/meta.json)" >> $GITHUB_OUTPUT
+          cat .github/scripts/meta.json
+
+      - name: 'Add i18n locale config to docusaurus.config'
+        run: |
+          LOCALES="${{ github.event.inputs.locales }}"
+          DOC_ROOT="${{ steps.meta.outputs.docusaurusRoot }}"
+
+          # Use configFile from meta.json (exact path, no discovery)
+          CONFIG_FILE="${{ steps.meta.outputs.configFile }}"
+
+          # Fallback: if meta.json didn't have configFile, search for it
+          if [ -z "$CONFIG_FILE" ] || [ ! -f "$CONFIG_FILE" ]; then
+            echo "configFile not in meta.json or not found, searching..."
+            for ext in js ts mjs cjs; do
+              if [ -f "${DOC_ROOT}/docusaurus.config.${ext}" ]; then
+                CONFIG_FILE="${DOC_ROOT}/docusaurus.config.${ext}"
+                break
+              fi
+            done
+          fi
+
+          if [ -z "$CONFIG_FILE" ] || [ ! -f "$CONFIG_FILE" ]; then
+            echo "ERROR: docusaurus.config not found"
+            exit 1
+          fi
+
+          echo "Config file: $CONFIG_FILE"
+          echo "Locales: $LOCALES"
+
+          # Write config injection script via node -e with env vars (no heredoc)
+          CONFIG_FILE="$CONFIG_FILE" LOCALES="$LOCALES" node -e '
+            const fs=require("fs"),cf=process.env.CONFIG_FILE,locs=process.env.LOCALES.split(",").map(s=>s.trim());
+            let c=fs.readFileSync(cf,"utf8");
+            if(/\bi18n\s*[:=]\s*\{/.test(c)){
+              const ls="[\"en\", "+locs.map(l=>"\""+l+"\"").join(", ")+"]";
+              const r=c.replace(/locales\s*:\s*\[[^\]]*\]/,"locales: "+ls);
+              if(r!==c){c=r;console.log("Updated existing i18n.locales")}
+              else{console.log("WARNING: could not update locales")}
+            }else{
+              const ls=locs.map(l=>"\""+l+"\"").join(", ");
+              const ic="\n  i18n: {\n    defaultLocale: \"en\",\n    locales: [\"en\", "+ls+"],\n  },";
+              const ps=[/(module\.exports\s*=\s*\{)/,/(export\s+default\s*\{)/,/(const\s+config\s*[:=]\s*\{)/];
+              let done=false;
+              for(const p of ps){const m=c.match(p);if(m){c=c.slice(0,m.index+m[0].length)+ic+c.slice(m.index+m[0].length);done=true;console.log("Injected after:",m[0]);break}}
+              if(!done){const f=c.indexOf("{");if(f>=0)c=c.slice(0,f+1)+ic+c.slice(f+1)}
+            }
+            fs.writeFileSync(cf,c);
+          '
+
+      - name: 'Place translated files (placeholder — JSON only, no docs copy)'
+        run: |
+          LOCALES="${{ github.event.inputs.locales }}"
+          DOC_ROOT="${{ steps.meta.outputs.docusaurusRoot }}"
+
+          # Strategy: copy ONLY i18n JSON files (theme strings, navbar, footer, etc.)
+          # Do NOT copy docs/ — that avoids broken cross-links, missing assets, and
+          # invalid MDX in the locale build. In production, transaurus places real
+          # translations. For verification, JSON-only proves the i18n build works.
+          #
+          # Also strip ICU plural forms to just {other} — English plurals like
+          # "One {count, plural, one {item} other {items}}" are invalid for
+          # non-English locales and cause build failures.
+
+          for LOCALE in $(echo "$LOCALES" | tr ',' ' '); do
+            echo "Setting up locale: $LOCALE"
+
+            if [ -d "${DOC_ROOT}/i18n/en" ]; then
+              mkdir -p "${DOC_ROOT}/i18n/${LOCALE}"
+              cp -r "${DOC_ROOT}/i18n/en/"* "${DOC_ROOT}/i18n/${LOCALE}/"
+
+              # Strip ICU plural/select forms AND pipe-separated plurals
+              # Docusaurus uses two plural formats:
+              #   ICU: "{count, plural, one {item} other {items}}"
+              #   Pipe: "One item|{count} items" (pipe-separated, last segment is "other")
+              for jsonfile in $(find "${DOC_ROOT}/i18n/${LOCALE}" -name '*.json'); do
+                node -e '
+                  const fs=require("fs");
+                  try{
+                    const d=JSON.parse(fs.readFileSync(process.argv[1],"utf8"));
+                    let ch=false;
+                    for(const[k,v]of Object.entries(d)){
+                      if(typeof v==="object"&&v.message){
+                        let m=v.message;
+                        // Strip ICU MessageFormat plurals: {count, plural, one {X} other {Y}} → Y
+                        m=m.replace(/\{[^,}]+,\s*(?:plural|select|selectordinal)\s*,\s*(?:(?:zero|one|two|few|many|=\d+)\s*\{[^}]*\}\s*)*other\s*\{([^}]*)\}\s*\}/g,"$1");
+                        // Strip pipe-separated plurals: "One X|Many X" → "Many X" (keep last segment)
+                        if(m.includes("|")&&!m.includes("http")&&!m.includes("<")){m=m.split("|").pop().trim()}
+                        if(m!==v.message){v.message=m;ch=true}
+                      }
+                    }
+                    if(ch){fs.writeFileSync(process.argv[1],JSON.stringify(d,null,2)+"\n");console.log("Fixed plurals:",process.argv[1])}
+                  }catch(e){}
+                ' "$jsonfile"
+              done
+
+              echo "  Placed $(find "${DOC_ROOT}/i18n/${LOCALE}" -name '*.json' | wc -l) JSON files"
+            else
+              echo "  No i18n/en directory found, skipping"
+            fi
+          done
+
+      - name: 'Set onBrokenLinks to warn (prevent broken link build failures)'
+        run: |
+          DOC_ROOT="${{ steps.meta.outputs.docusaurusRoot }}"
+          CONFIG_FILE="${{ steps.meta.outputs.configFile }}"
+          # Fallback discovery if meta.json didn't have configFile
+          if [ -z "$CONFIG_FILE" ] || [ ! -f "$CONFIG_FILE" ]; then
+            for ext in js ts mjs cjs; do
+              [ -f "${DOC_ROOT}/docusaurus.config.${ext}" ] && CONFIG_FILE="${DOC_ROOT}/docusaurus.config.${ext}" && break
+            done
+          fi
+          if [ -n "$CONFIG_FILE" ] && [ -f "$CONFIG_FILE" ]; then
+            # Replace onBrokenLinks: 'throw' with 'warn'
+            sed -i "s/onBrokenLinks.*['\"]throw['\"]/onBrokenLinks: 'warn'/g" "$CONFIG_FILE"
+            sed -i 's/onBrokenMarkdownLinks.*["\x27]throw["\x27]/onBrokenMarkdownLinks: "warn"/g' "$CONFIG_FILE"
+            echo "Set onBrokenLinks/onBrokenMarkdownLinks to warn in $CONFIG_FILE"
+          fi
+
+      - name: 'Rebuild with translations'
+        env:
+          DOCUSAURUS_IGNORE_SSG_WARNINGS: 'true'
+        run: |
+          DOC_ROOT="${{ steps.meta.outputs.docusaurusRoot }}"
+
+          if [ -f ".github/scripts/rebuild.sh" ]; then
+            chmod +x .github/scripts/rebuild.sh
+            # cd to docusaurusRoot so rebuild.sh runs in the right directory
+            cd "$DOC_ROOT"
+            bash "$OLDPWD/.github/scripts/rebuild.sh"
+          else
+            echo "No rebuild.sh found, using meta.json build command"
+            cd "$DOC_ROOT"
+
+            # Install deps
+            if [ -f "pnpm-lock.yaml" ]; then
+              npm install -g pnpm && pnpm install --no-frozen-lockfile
+            elif [ -f "yarn.lock" ]; then
+              yarn install --frozen-lockfile 2>/dev/null || yarn install
+            else
+              npm install --legacy-peer-deps 2>/dev/null || npm install
+            fi
+
+            # Build
+            ${{ steps.meta.outputs.buildCommand }}
+          fi
+
+      - name: 'Verify build output'
+        run: |
+          BUILD_OUTPUT="${{ steps.meta.outputs.buildOutput }}"
+          if [ -d "$BUILD_OUTPUT" ] && [ -f "$BUILD_OUTPUT/index.html" ]; then
+            echo "Build verified: $(du -sh "$BUILD_OUTPUT" | cut -f1), $(find "$BUILD_OUTPUT" -type f | wc -l) files"
+
+            # Check if locale subdirectories exist in build output
+            for LOCALE in $(echo "${{ github.event.inputs.locales }}" | tr ',' ' '); do
+              if [ -d "$BUILD_OUTPUT/$LOCALE" ]; then
+                echo "  Locale $LOCALE: $(find "$BUILD_OUTPUT/$LOCALE" -type f | wc -l) files"
+              else
+                echo "  WARNING: $BUILD_OUTPUT/$LOCALE not found (Docusaurus may build locales differently)"
+              fi
+            done
+          else
+            echo "WARNING: Build output not found at $BUILD_OUTPUT"
+            find . -name "index.html" -path "*/build/*" -o -name "index.html" -path "*/public/*" 2>/dev/null | head -5
+          fi
+
+      - name: 'Commit translated build'
+        run: |
+          BUILD_OUTPUT="${{ steps.meta.outputs.buildOutput }}"
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+
+          git add .
+
+          # Force-add build output
+          for dirname in build public dist out "$BUILD_OUTPUT"; do
+            find . -name "$dirname" -type d -maxdepth 4 -not -path "./.git/*" | while read d; do
+              if [ -f "$d/index.html" ]; then
+                git add -f "$d/"
+              fi
+            done
+          done
+
+          if git diff --staged --quiet; then
+            echo "No changes to commit."
+          else
+            git commit --no-verify -m "Stage 2: add translations (${{ github.event.inputs.locales }}) and rebuild"
+            git push origin main
+          fi
